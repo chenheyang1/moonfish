@@ -407,9 +407,9 @@
 
   /* ════════════════════════════════════════════════════════════════
      1. 兑换码配置区（只有赢了才会解开一张）
-        填法 A：直接把 5 个码写进下面 PLAIN_CODES 的引号里
+        填法 A：直接把码写进下面 PLAIN_CODES 的引号里（写几个就发几张）
         填法 B：在项目根目录跑
-                node scripts/game-codes.mjs set 码1 码2 码3 码4 码5
+                node scripts/game-codes.mjs set 码1 码2 码3
                 它会写成 ENCODED_CODES，免得有人直接看源码白拿
         ENCODED_CODES 非空时优先，PLAIN_CODES 就被忽略
      ════════════════════════════════════════════════════════════════ */
@@ -1401,7 +1401,7 @@
     var html = ''
     if (!pool.length && won) {
       html = '<p class="eyebrow">胜利</p><h2>赢了，但没码</h2>' +
-        '<p class="lede">这一局打得漂亮，可作者还没把兑换码填进来。<br>跑一句 <b>node scripts/game-codes.mjs set 码1 码2 码3 码4 码5</b> 就有了。</p>' +
+        '<p class="lede">这一局打得漂亮，可作者还没把兑换码填进来。<br>跑一句 <b>node scripts/game-codes.mjs set 码1 码2 码3</b> 就有了。</p>' +
         '<div class="actions"><button type="button" class="btn btn-primary" id="btn-again">再玩一局</button></div>'
     } else if (won) {
       var pick = claimCode()
@@ -1417,7 +1417,7 @@
           '<h2>捞上来一张</h2>' +
           '<div class="tag"><span class="tag-index">第 ' + (pick.index + 1) + ' 张 · 共 ' + pick.total + ' 张</span>' +
           '<code class="tag-code" id="tag-code">' + pick.code + '</code></div>' +
-          '<p class="lede">' + (left > 0 ? '还剩 ' + left + ' 张，再赢一局还能抽。' : '这是最后一张，5 张全部到手。') + '</p>' +
+          '<p class="lede">' + (left > 0 ? '还剩 ' + left + ' 张，再赢一局还能抽。' : '这是最后一张，' + pool.length + ' 张全部到手。') + '</p>' +
           '<div class="actions"><button type="button" class="btn btn-primary" id="btn-copy">复制兑换码</button>' +
           '<button type="button" class="btn" id="btn-again">再玩一局</button></div>' +
           '<p class="hint">这一版的码就藏在这个页面里：挡得住顺手看源码的人，挡不住铁了心逆向的人。</p>' +

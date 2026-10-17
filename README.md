@@ -1,7 +1,7 @@
 # 月下捞鱼 · Moonfish
 
 一个零依赖的**单文件**小游戏：猫坐在荷叶上左右挪动，接住天上掉下来的鱼。
-**分数够了才算赢，赢一局才解出一张兑换码** —— 一共 5 张，抽完为止。
+**分数够了才算赢，赢一局才解出一张兑换码** —— 一共 3 张，抽完为止（填几张就发几张）。
 
 **在线玩：<https://chenheyang1.github.io/moonfish/game/moonfish.html>**
 
@@ -42,7 +42,7 @@
 ## 填兑换码
 
 ```bash
-node scripts/game-codes.mjs set CODE-1 CODE-2 CODE-3 CODE-4 CODE-5
+node scripts/game-codes.mjs set CODE-1 CODE-2 CODE-3
 node scripts/game-codes.mjs list      # 看看现在填了什么
 node scripts/game-codes.mjs clear     # 清空
 node scripts/game-build.mjs           # 改完码重新生成 release/moonfish.html

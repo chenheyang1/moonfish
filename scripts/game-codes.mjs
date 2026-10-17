@@ -107,7 +107,7 @@ function main() {
   if (command === 'set') {
     const codes = readInputCodes(args)
     if (!codes.length) {
-      console.error('没有拿到兑换码。用法：node scripts/game-codes.mjs set 码1 码2 码3 码4 码5')
+      console.error('没有拿到兑换码。用法：node scripts/game-codes.mjs set 码1 码2 码3')
       process.exitCode = 1
       return
     }
@@ -130,7 +130,7 @@ function main() {
   if (command === 'list' || command === 'status') {
     const current = readCodes(html)
     if (!current.codes.length) {
-      console.log('还没填兑换码。跑：node scripts/game-codes.mjs set 码1 码2 码3 码4 码5')
+      console.log('还没填兑换码。跑：node scripts/game-codes.mjs set 码1 码2 码3')
       return
     }
     console.log(`当前 ${current.codes.length} 个兑换码（存储方式：${current.source === 'encoded' ? '混淆串' : '明文'}）:`)
