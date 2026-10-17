@@ -252,11 +252,11 @@
     background: radial-gradient(circle at 34% 28%, #ffe9b4, var(--gold) 58%, #97671b);
     box-shadow: 0 0 0 2px rgba(42, 26, 11, .5);
   }
-  .tag-index { display: block; font-size: 11px; letter-spacing: .2em; color: rgba(42, 26, 11, .66); margin-bottom: 8px; }
+  .tag-index { display: block; font-size: 11px; letter-spacing: .12em; line-height: 1.5; color: rgba(42, 26, 11, .66); margin-bottom: 8px; }
   .tag-code {
     display: block;
-    font: 600 21px/1.35 var(--font-mono);
-    letter-spacing: .1em;
+    font: 600 17px/1.4 var(--font-mono);
+    letter-spacing: .04em;
     word-break: break-all;
     -webkit-user-select: all;
     user-select: all;
@@ -383,7 +383,7 @@
     <div class="overlay" id="overlay-collection" hidden>
       <div class="card">
         <p class="eyebrow">收藏</p>
-        <h2>我的兑换码</h2>
+        <h2 id="collection-title">我的兑换码</h2>
         <p class="lede" id="collection-lede"></p>
         <ol class="taglist" id="taglist"></ol>
         <div class="actions">
@@ -742,6 +742,10 @@
     ? DEMO_CODES.slice()
     : (ENCODED_CODES ? decodeCodePool(ENCODED_CODES) : PLAIN_CODES.map(function (c) { return String(c).trim() }).filter(Boolean))
 
+  // 带真码的发码文件里，出码的地方要写清楚这是麦当劳兑换码；
+  // 演示模式（?demo=1）和没填码的公开页保持中性的"兑换码"。
+  var CODE_LABEL = !DEMO && pool.length ? '麦当劳兑换码' : '兑换码'
+
   var save = { claimed: [], rounds: 0, wins: 0, best: 0, muted: false }
 
   function loadSave() {
@@ -829,6 +833,7 @@
     overlayResult: document.getElementById('overlay-result'),
     resultCard: document.getElementById('result-card'),
     overlayCollection: document.getElementById('overlay-collection'),
+    collectionTitle: document.getElementById('collection-title'),
     collectionLede: document.getElementById('collection-lede'),
     taglist: document.getElementById('taglist'),
     ownedPill: document.getElementById('owned-pill'),
@@ -1374,9 +1379,10 @@
 
   function renderCollection() {
     var owned = save.claimed.slice().sort(function (a, b) { return a - b })
+    el.collectionTitle.textContent = '我的' + CODE_LABEL
     el.collectionLede.textContent = owned.length
-      ? '已经赢到 ' + owned.length + ' 张，共 ' + pool.length + ' 张。'
-      : '还没有赢到兑换码，回去捞鱼吧。'
+      ? '已经赢到 ' + owned.length + ' 张' + CODE_LABEL + '，共 ' + pool.length + ' 张。'
+      : '还没有赢到' + CODE_LABEL + '，回去捞鱼吧。'
     var html = ''
     var ownedSet = {}
     for (var i = 0; i < owned.length; i += 1) ownedSet[owned[i]] = true
@@ -1408,20 +1414,21 @@
       refreshPill()
       if (!pick) {
         html = '<p class="eyebrow">胜利</p><h2>' + pool.length + ' 张全被你捞走了</h2>' +
-          '<p class="lede">兑换码已经发完，都在你的收藏里。</p>' +
-          '<div class="actions"><button type="button" class="btn btn-primary" id="btn-open-collection">看我的兑换码</button>' +
+          '<p class="lede">' + CODE_LABEL + '已经发完，都在你的收藏里。</p>' +
+          '<div class="actions"><button type="button" class="btn btn-primary" id="btn-open-collection">看我的' + CODE_LABEL + '</button>' +
           '<button type="button" class="btn" id="btn-again">再玩一局</button></div>'
       } else {
         var left = pool.length - save.claimed.length
         html = '<p class="eyebrow">第 ' + roundNumber(true) + ' 局 · 胜利</p>' +
           '<h2>捞上来一张</h2>' +
-          '<div class="tag"><span class="tag-index">第 ' + (pick.index + 1) + ' 张 · 共 ' + pick.total + ' 张</span>' +
+          '<div class="tag"><span class="tag-index">' + CODE_LABEL + ' · 第 ' + (pick.index + 1) + ' / ' + pick.total + ' 张</span>' +
           '<code class="tag-code" id="tag-code">' + pick.code + '</code></div>' +
+          '<p class="hint">' + (CODE_LABEL === '麦当劳兑换码' ? '麦当劳兑换码：复制后到麦当劳 App / 小程序里兑换。' : '复制后按你拿到它的渠道兑换。') + '</p>' +
           '<p class="lede">' + (left > 0 ? '还剩 ' + left + ' 张，再赢一局还能抽。' : '这是最后一张，' + pool.length + ' 张全部到手。') + '</p>' +
-          '<div class="actions"><button type="button" class="btn btn-primary" id="btn-copy">复制兑换码</button>' +
+          '<div class="actions"><button type="button" class="btn btn-primary" id="btn-copy">复制' + CODE_LABEL + '</button>' +
           '<button type="button" class="btn" id="btn-again">再玩一局</button></div>' +
           '<p class="hint">这一版的码就藏在这个页面里：挡得住顺手看源码的人，挡不住铁了心逆向的人。</p>' +
-          '<p class="hint"><button type="button" class="btn btn-ghost" id="btn-open-collection">查看我的兑换码</button></p>'
+          '<p class="hint"><button type="button" class="btn btn-ghost" id="btn-open-collection">查看我的' + CODE_LABEL + '</button></p>'
       }
       el.live.textContent = '胜利，得分 ' + game.score
     } else {
@@ -1430,7 +1437,7 @@
       html = '<p class="eyebrow">第 ' + roundNumber(false) + ' 局 · 失败</p><h2>脱钩了</h2>' +
         '<p class="lede">本局 ' + game.score + ' 分，目标 ' + game.target + ' 分。<br>' + how + '</p>' +
         '<div class="actions"><button type="button" class="btn btn-primary" id="btn-again">再来一局</button>' +
-        '<button type="button" class="btn" id="btn-open-collection">我的兑换码</button></div>'
+        '<button type="button" class="btn" id="btn-open-collection">我的' + CODE_LABEL + '</button></div>'
       el.live.textContent = '失败，得分 ' + game.score
     }
     finishCard(html)

@@ -5,3 +5,5 @@ codes.txt
 *.local.json
 # 拆分成"一人一份"的文件里是真码，别提交
 release/split/
+# 真码产物（麦当劳兑换码）别提交
+release/giveaway/

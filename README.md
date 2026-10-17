@@ -58,6 +58,17 @@ node scripts/game-codes.mjs gen --count 3                  # → MOON-7K2Q-9X4D 
 node scripts/game-codes.mjs gen --count 3 --prefix LING
 ```
 
+### 整份发（随机抽）
+
+把码写进一份文件，谁都能玩；每赢一局从**还没发出的码**里随机抽一张：
+
+```bash
+node scripts/game-build.mjs --out release/giveaway/moonfish.html
+```
+
+带真码的文件里，出码卡片和收藏页会写明「麦当劳兑换码」；演示模式（`?demo=1`）和没填码的公开页保持中性的「兑换码」。
+`release/giveaway/` 里是真码，别提交。
+
 ### 一人一份（三个人不重复）
 
 ```bash
