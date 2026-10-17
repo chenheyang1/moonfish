@@ -3,7 +3,8 @@
 一个零依赖的**单文件**小游戏：猫坐在荷叶上左右挪动，接住天上掉下来的鱼。
 **分数够了才算赢，赢一局才解出一张兑换码** —— 一共 3 张，抽完为止（填几张就发几张）。
 
-**在线玩：<https://chenheyang1.github.io/moonfish/game/moonfish.html>**
+**发码版（带 3 张麦当劳兑换码，赢一局随机发一张）：<https://chenheyang1.github.io/moonfish/>**
+**在线 demo（不带码）：<https://chenheyang1.github.io/moonfish/game/moonfish.html>**
 
 ![对局中](preview/game-play.png)
 
