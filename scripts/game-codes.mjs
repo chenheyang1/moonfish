@@ -116,7 +116,7 @@ function main() {
     const written = writeCodes(html, unique)
     writeFileSync(args.game, written.html)
     console.log(`已写入 ${written.codes.length} 个兑换码 → ${args.game}`)
-    if (written.codes.length !== 5) console.warn(`⚠️  现在是 ${written.codes.length} 个码，游戏会按这个数量发（原本说好 5 张）`)
+    if (written.codes.length > 6) console.warn(`⚠️  现在是 ${written.codes.length} 个码，游戏会按这个数量发；发太多张就不太像"奖品"了`)
     console.log('再跑 node scripts/game-build.mjs 更新可分享的单文件版本。')
     return
   }

@@ -50,6 +50,19 @@ node scripts/game-build.mjs           # 改完码重新生成 release/moonfish.h
 
 `set` 会把码转成混淆串写进页面，源码里看不到明文，**只有赢了才会解出那一张**。
 
+### 一人一份（三个人不重复）
+
+```bash
+node scripts/game-codes.mjs set CODE-1 CODE-2 CODE-3
+node scripts/game-build.mjs --split 3      # → release/split/moonfish-1..3.html
+```
+
+每份只带一个码、页脚标着「第 N 份」，一人一份发出去，三个人不会拿到重复的码；
+同一份里那个码也只会出现一次（再赢会提示"码发完了"）。
+
+注意：领取记录存在**收件人的浏览器**里（`localStorage`），清缓存就会重置——所以一份只发给一个人；
+`release/split/` 里是真码，别提交进仓库。
+
 ## 说清楚防作弊的边界
 
 **这个文件藏不住秘密。** 传到 GitHub、发链接、发文件都一样：页面进了浏览器就是明文，
