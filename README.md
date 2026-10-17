@@ -3,6 +3,8 @@
 一个零依赖的**单文件**小游戏：猫坐在荷叶上左右挪动，接住天上掉下来的鱼。
 **分数够了才算赢，赢一局才解出一张兑换码** —— 一共 5 张，抽完为止。
 
+**在线玩：<https://chenheyang1.github.io/moonfish/game/moonfish.html>**
+
 ![对局中](preview/game-play.png)
 
 ## 直接玩
@@ -11,7 +13,7 @@
 |---|---|
 | 下载即玩 | 下 `release/moonfish.html`，双击打开就能玩，也能直接转发给别人（猫贴图已内嵌） |
 | 源码版 | 打开 `game/moonfish.html`（会读取 `assets/pet-cutout.png`；贴图缺失时自动退回现画的矢量猫） |
-| 在线玩 | 在仓库设置里打开 GitHub Pages 后访问 `https://<用户名>.github.io/moonfish/game/moonfish.html` |
+| 在线玩 | <https://chenheyang1.github.io/moonfish/game/moonfish.html> |
 
 ## 玩法
 
