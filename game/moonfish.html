@@ -134,15 +134,47 @@
   .lede { margin: 0 0 12px; font-size: 13.5px; color: #c3d2da; }
   .lede b { color: var(--gold-soft); font-weight: 600; }
   .meta { margin: 0 0 16px; font-size: 12.5px; color: var(--muted); font-family: var(--font-mono); }
-  .legend { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 12.5px; color: #c3d2da; }
-  .legend li { display: flex; align-items: center; gap: 6px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .legend {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px 10px;
+    text-align: left;
+    font-size: 12px;
+    color: #c3d2da;
+  }
+  .legend li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .legend li.wide { grid-column: 1 / -1; }
+  .legend b { color: #eaf2f6; font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
   .dot-fish { background: var(--weed); }
   .dot-gold { background: var(--gold); }
   .dot-milk { background: #e9eef1; }
   .dot-bomb { background: var(--cinnabar); }
+  .dot-time { background: var(--iris); }
+  .dot-kelp { background: #63c0ab; }
+  .dot-bell { background: var(--gold-soft); }
   .actions { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin: 4px 0 0; }
   .hint { margin: 12px 0 0; font-size: 11.5px; color: var(--muted); }
+  .hint.warn { margin: 0 0 14px; color: #e2836c; }
+
+  .badge {
+    position: absolute;
+    top: 62px;
+    left: 16px;
+    z-index: 2;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(99, 192, 171, .55);
+    background: rgba(11, 19, 28, .72);
+    color: #8fd8c6;
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .badge b { font-family: var(--font-mono); }
+  .badge[hidden] { display: none; }
   .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
   .btn {
@@ -302,6 +334,7 @@
     </div>
 
     <div class="combo" id="combo" hidden>连击 <b id="combo-n">0</b> <span id="combo-x">×1</span></div>
+    <div class="badge" id="slow" hidden>鱼群变慢 <b id="slow-s">0</b>s</div>
     <p class="sr-only" id="live" aria-live="polite"></p>
 
     <div class="overlay" id="overlay-menu">
@@ -310,12 +343,16 @@
         <h2>捞鱼换码</h2>
         <p class="lede">左右挪动荷叶上的猫，接住天上掉下来的鱼。<b>分数够了才算赢</b>，赢一局才解一张兑换码。</p>
         <ul class="legend">
-          <li><i class="dot dot-fish"></i>小鱼 +10</li>
-          <li><i class="dot dot-gold"></i>金鱼 +25</li>
-          <li><i class="dot dot-milk"></i>奶瓶 +1 条命</li>
-          <li><i class="dot dot-bomb"></i>炸弹 −1 条命</li>
+          <li><i class="dot dot-fish"></i><b>小鱼</b>+10 分</li>
+          <li><i class="dot dot-gold"></i><b>金鱼</b>+25 分</li>
+          <li><i class="dot dot-milk"></i><b>奶瓶</b>+1 条命</li>
+          <li><i class="dot dot-bomb"></i><b>炸弹</b>−1 条命</li>
+          <li><i class="dot dot-time"></i><b>沙漏</b>+5 秒</li>
+          <li><i class="dot dot-kelp"></i><b>水草</b>鱼群变慢 6 秒</li>
+          <li class="wide"><i class="dot dot-bell"></i><b>铃铛</b>摇一下，清空屏幕上的炸弹（每个 +5 分）</li>
         </ul>
-        <p class="meta" id="menu-meta">目标 220 分 · 3 条命 · 30 秒</p>
+        <p class="meta" id="menu-meta">目标 125 分 · 1 条命 · 30 秒</p>
+        <p class="hint warn">只有 1 条命：接住炸弹这局立刻结束，奶瓶能续到 3 条。</p>
         <div class="actions">
           <button type="button" class="btn btn-primary" id="btn-start">开始捞鱼</button>
         </div>
@@ -384,20 +421,26 @@
     padY: 528,
     padHalf: 52,
     step: 1 / 60,
-    maxLives: 5,
+    maxLives: 3,          // 奶瓶最多把命补到 3 条
     comboStep: 5,
     maxMultiplier: 3,
     playerSpeed: 540,
     margin: 34,
+    slowFactor: 0.5,      // 水草生效时的掉落倍率
+    slowSeconds: 6,
+    timeBonus: 5,         // 沙漏加几秒
+    timeChance: 0.05,
+    kelpChance: 0.05,
+    bellChance: 0.04,
   }
 
-  // 难度按"已经赢过几局"递增：第一局手松一点，第五局得真会玩
+  // 难度按"已经赢过几局"递增：全程只有 1 条命，撞上炸弹就结束
   var LEVELS = [
-    { target: 125, seconds: 30, lives: 3, fallSpeed: 104, spawnEvery: 0.62, bombChance: 0.13, goldChance: 0.08, milkChance: 0.07 },
-    { target: 180, seconds: 30, lives: 3, fallSpeed: 118, spawnEvery: 0.58, bombChance: 0.15, goldChance: 0.08, milkChance: 0.07 },
-    { target: 205, seconds: 30, lives: 3, fallSpeed: 132, spawnEvery: 0.54, bombChance: 0.17, goldChance: 0.08, milkChance: 0.07 },
-    { target: 225, seconds: 30, lives: 3, fallSpeed: 148, spawnEvery: 0.5, bombChance: 0.19, goldChance: 0.08, milkChance: 0.07 },
-    { target: 250, seconds: 30, lives: 3, fallSpeed: 164, spawnEvery: 0.46, bombChance: 0.22, goldChance: 0.08, milkChance: 0.07 },
+    { target: 125, seconds: 30, lives: 1, fallSpeed: 132, spawnEvery: 0.62, bombChance: 0.1, goldChance: 0.08, milkChance: 0.1 },
+    { target: 180, seconds: 30, lives: 1, fallSpeed: 150, spawnEvery: 0.58, bombChance: 0.12, goldChance: 0.08, milkChance: 0.1 },
+    { target: 205, seconds: 30, lives: 1, fallSpeed: 170, spawnEvery: 0.54, bombChance: 0.14, goldChance: 0.08, milkChance: 0.1 },
+    { target: 225, seconds: 30, lives: 1, fallSpeed: 192, spawnEvery: 0.5, bombChance: 0.16, goldChance: 0.08, milkChance: 0.1 },
+    { target: 250, seconds: 30, lives: 1, fallSpeed: 214, spawnEvery: 0.46, bombChance: 0.18, goldChance: 0.08, milkChance: 0.1 },
   ]
 
   function mulberry32(seed) {
@@ -436,6 +479,7 @@
       bestCombo: 0,
       items: [],
       spawnTimer: 0.35,
+      slowTimer: 0,
       catX: SIM.width / 2,
       steps: 0,
       status: 'playing',
@@ -449,18 +493,43 @@
     var rand = round.rand
     var roll = rand()
     var type = 'fish'
-    if (round.lives < SIM.maxLives && roll < rules.milkChance) type = 'milk'
-    else if (roll < rules.milkChance + rules.goldChance) type = 'gold'
-    else if (roll < rules.milkChance + rules.goldChance + rules.bombChance) type = 'bomb'
+    var acc = 0
+    // 满血时奶瓶不出现，名额顺延给后面的道具
+    if (round.lives < SIM.maxLives) {
+      acc += rules.milkChance
+      if (roll < acc) type = 'milk'
+    }
+    if (type === 'fish') {
+      acc += rules.goldChance
+      if (roll < acc) type = 'gold'
+    }
+    if (type === 'fish') {
+      acc += rules.bombChance
+      if (roll < acc) type = 'bomb'
+    }
+    if (type === 'fish') {
+      acc += SIM.timeChance
+      if (roll < acc) type = 'time'
+    }
+    if (type === 'fish') {
+      acc += SIM.kelpChance
+      if (roll < acc) type = 'kelp'
+    }
+    if (type === 'fish') {
+      acc += SIM.bellChance
+      if (roll < acc) type = 'bell'
+    }
     var speed = rules.fallSpeed * (SIM.height / 640) * (0.9 + rand() * 0.25)
     round.items.push({
       type: type,
       x: SIM.margin + rand() * (SIM.width - SIM.margin * 2),
       y: -28,
       r: type === 'fish' ? 16 : 17,
-      vy: type === 'bomb' ? speed * 1.06 : speed,
-      sway: (rand() - 0.5) * (type === 'gold' ? 34 : 16),
+      // 炸弹落得更急，沙漏飘得慢一点，别的照常
+      vy: type === 'bomb' ? speed * 1.08 : type === 'time' ? speed * 0.92 : speed,
+      sway: (rand() - 0.5) * (type === 'gold' ? 34 : type === 'kelp' ? 6 : 16),
       phase: rand() * Math.PI * 2,
+      born: round.t,
     })
   }
 
@@ -482,6 +551,29 @@
     if (item.type === 'milk') {
       round.lives = Math.min(SIM.maxLives, round.lives + 1)
       events.push({ type: 'milk', x: item.x, y: item.y })
+      return
+    }
+    if (item.type === 'time') {
+      round.time += SIM.timeBonus
+      events.push({ type: 'time', x: item.x, y: item.y, seconds: SIM.timeBonus })
+      return
+    }
+    if (item.type === 'kelp') {
+      round.slowTimer = SIM.slowSeconds
+      events.push({ type: 'slow', x: item.x, y: item.y, seconds: SIM.slowSeconds })
+      return
+    }
+    if (item.type === 'bell') {
+      var cleared = 0
+      for (var b = round.items.length - 1; b >= 0; b -= 1) {
+        if (round.items[b].type === 'bomb') {
+          round.items.splice(b, 1)
+          cleared += 1
+        }
+      }
+      round.score += cleared * 5
+      events.push({ type: 'bell', x: item.x, y: item.y, cleared: cleared })
+      if (round.score >= round.target) endRound(round, true, 'target')
       return
     }
     var mult = multiplierOf(round)
@@ -511,13 +603,17 @@
       spawnIn(round)
       round.spawnTimer = round.rules.spawnEvery * (0.82 + round.rand() * 0.36)
     }
+    if (round.slowTimer > 0) round.slowTimer = Math.max(0, round.slowTimer - dt)
     var x = clampX(catX)
     round.catX = x
     var catchTop = SIM.padY - 74
     var catchBottom = SIM.padY + 10
+    var slow = round.slowTimer > 0 ? SIM.slowFactor : 1
     for (var i = round.items.length - 1; i >= 0; i -= 1) {
+      // 接铃铛会把别的炸弹从数组里删掉，长度会缩，索引得重新对齐
+      if (i >= round.items.length) continue
       var item = round.items[i]
-      item.y += item.vy * dt
+      item.y += item.vy * slow * dt
       item.x = Math.min(Math.max(item.x + Math.sin(round.t * 2 + item.phase) * item.sway * dt, 18), SIM.width - 18)
       if (item.y >= catchTop - item.r && item.y <= catchBottom + item.r && Math.abs(item.x - x) <= SIM.padHalf + item.r * 0.4) {
         round.items.splice(i, 1)
@@ -658,6 +754,9 @@
     catch: function () { beep(660, 0.09, 'triangle', 0.07) },
     gold: function () { beep(880, 0.09, 'triangle', 0.08); beep(1320, 0.12, 'triangle', 0.06, 0.07) },
     milk: function () { beep(520, 0.1, 'sine', 0.09); beep(780, 0.14, 'sine', 0.07, 0.08) },
+    time: function () { beep(740, 0.1, 'sine', 0.08); beep(988, 0.14, 'sine', 0.07, 0.08) },
+    slow: function () { beep(320, 0.18, 'sine', 0.08); beep(220, 0.24, 'sine', 0.06, 0.1) },
+    bell: function () { beep(1046, 0.12, 'triangle', 0.08); beep(1568, 0.18, 'triangle', 0.06, 0.1) },
     bomb: function () { beep(120, 0.24, 'sawtooth', 0.1); beep(70, 0.3, 'square', 0.06, 0.02) },
     win: function () { beep(523, 0.14, 'triangle', 0.08); beep(659, 0.14, 'triangle', 0.08, 0.13); beep(784, 0.26, 'triangle', 0.09, 0.26) },
     lose: function () { beep(392, 0.18, 'sine', 0.08); beep(294, 0.3, 'sine', 0.08, 0.16) },
@@ -688,6 +787,8 @@
     ownedPill: document.getElementById('owned-pill'),
     sound: document.getElementById('btn-sound'),
     collection: document.getElementById('btn-collection'),
+    slow: document.getElementById('slow'),
+    slowS: document.getElementById('slow-s'),
     toast: document.getElementById('toast'),
   }
 
@@ -1002,11 +1103,11 @@
     if (cat.faceUntil && t > cat.faceUntil) { cat.face = 'idle'; cat.faceUntil = 0; face = 'idle' }
     var bob = Math.sin(t * 2.2) * 2.4
     if (catImage) {
-      // 和荷叶差不多宽：既看得清猫，贴边时也不会被裁掉半个身子
-      var size = SIM.padHalf * 2 + 6
-      ctx.drawImage(catImage, cat.x - size / 2, cat.y - size * 0.62 + bob, size, size)
+      // 小只一点：荷叶还是那么大，猫坐中间，接鱼看荷叶的位置
+      var size = SIM.padHalf * 1.48
+      ctx.drawImage(catImage, cat.x - size / 2, cat.y - size * 0.56 + bob, size, size)
     } else {
-      drawVectorCat(cat.x, cat.y + bob, 0.98, t, face)
+      drawVectorCat(cat.x, cat.y + bob, 0.7, t, face)
     }
   }
 
@@ -1071,6 +1172,21 @@
         addFloat('+1 条命', event.x, event.y - 10, '#f3d79a')
         faceFor('happy', 0.6)
         sfx.milk()
+      } else if (event.type === 'time') {
+        addBits(event.x, event.y, '#9b7cf0', 10)
+        addFloat('+' + event.seconds + ' 秒', event.x, event.y - 10, '#d8c8ff')
+        faceFor('happy', 0.5)
+        sfx.time()
+      } else if (event.type === 'slow') {
+        addBits(event.x, event.y, '#63c0ab', 10)
+        addFloat('鱼群变慢 ' + event.seconds + ' 秒', event.x, event.y - 10, '#8fd8c6')
+        faceFor('happy', 0.5)
+        sfx.slow()
+      } else if (event.type === 'bell') {
+        addBits(event.x, event.y, '#e8b04b', 14)
+        addFloat(event.cleared > 0 ? '震掉 ' + event.cleared + ' 个炸弹' : '铃声清场', event.x, event.y - 10, '#f3d79a')
+        faceFor('happy', 0.5)
+        sfx.bell()
       } else if (event.type === 'splash') {
         addBits(event.x, event.y, '#4b7f8c', 5)
       } else if (event.type === 'combo-break') {
@@ -1171,6 +1287,12 @@
       el.comboX.textContent = '×' + mult
     } else {
       el.combo.hidden = true
+    }
+    if (mode === 'play' && game.slowTimer > 0) {
+      el.slow.hidden = false
+      el.slowS.textContent = game.slowTimer.toFixed(1)
+    } else {
+      el.slow.hidden = true
     }
     refreshPill()
   }
@@ -1558,6 +1680,105 @@
     ctx.restore()
   }
 
+  function drawHourglass(x, y, r, t) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.fillStyle = 'rgba(240, 246, 248, .92)'
+    ctx.strokeStyle = 'rgba(6, 20, 24, .85)'
+    ctx.lineWidth = 1.8
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.7, -r * 0.86)
+    ctx.lineTo(r * 0.7, -r * 0.86)
+    ctx.lineTo(r * 0.2, 0)
+    ctx.lineTo(r * 0.7, r * 0.86)
+    ctx.lineTo(-r * 0.7, r * 0.86)
+    ctx.lineTo(-r * 0.2, 0)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    // 上下的沙
+    ctx.fillStyle = '#e8b04b'
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.46, -r * 0.72)
+    ctx.lineTo(r * 0.46, -r * 0.72)
+    ctx.lineTo(r * 0.08, -r * 0.08)
+    ctx.lineTo(-r * 0.08, -r * 0.08)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.42, r * 0.74)
+    ctx.lineTo(r * 0.42, r * 0.74)
+    ctx.lineTo(r * 0.05, r * 0.1)
+    ctx.lineTo(-r * 0.05, r * 0.1)
+    ctx.closePath()
+    ctx.fill()
+    // 落沙 + 木框
+    ctx.strokeStyle = 'rgba(232, 176, 75, .95)'
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    ctx.moveTo(0, -r * 0.04 + ((t * 6) % (r * 0.16)))
+    ctx.lineTo(0, r * 0.1)
+    ctx.stroke()
+    ctx.fillStyle = '#8c5c2c'
+    ctx.fillRect(-r * 0.82, -r * 0.98, r * 1.64, r * 0.15)
+    ctx.fillRect(-r * 0.82, r * 0.83, r * 1.64, r * 0.15)
+    ctx.restore()
+  }
+
+  function drawKelp(x, y, r, t) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.lineCap = 'round'
+    ctx.strokeStyle = '#2f8f7d'
+    ctx.lineWidth = r * 0.26
+    ctx.beginPath()
+    ctx.moveTo(0, r * 0.95)
+    ctx.quadraticCurveTo(-r * 0.6, r * 0.25, -r * 0.12, -r * 0.18)
+    ctx.quadraticCurveTo(r * 0.4, -r * 0.58, r * 0.14, -r * 0.98)
+    ctx.stroke()
+    ctx.fillStyle = '#63c0ab'
+    ctx.beginPath()
+    ctx.ellipse(-r * 0.56, r * 0.06, r * 0.34, r * 0.15, -0.6, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.ellipse(r * 0.44, -r * 0.46, r * 0.3, r * 0.14, 0.7, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(6, 20, 24, .45)'
+    ctx.lineWidth = 1.2
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.18, r * 0.52)
+    ctx.quadraticCurveTo(-r * 0.5, r * 0.12, -r * 0.16, -r * 0.1)
+    ctx.stroke()
+    ctx.restore()
+  }
+
+  function drawBell(x, y, r, t) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(Math.sin(t * 4) * 0.16)
+    var shine = ctx.createLinearGradient(0, -r, 0, r)
+    shine.addColorStop(0, '#ffe6a8')
+    shine.addColorStop(0.5, '#e8b04b')
+    shine.addColorStop(1, '#a9761f')
+    ctx.fillStyle = shine
+    ctx.strokeStyle = 'rgba(6, 20, 24, .8)'
+    ctx.lineWidth = 1.8
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.74, r * 0.6)
+    ctx.quadraticCurveTo(-r * 0.8, -r * 0.12, 0, -r * 0.96)
+    ctx.quadraticCurveTo(r * 0.8, -r * 0.12, r * 0.74, r * 0.6)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = '#8c5c2c'
+    ctx.fillRect(-r * 0.86, r * 0.53, r * 1.72, r * 0.18)
+    ctx.fillStyle = '#e8b04b'
+    ctx.beginPath()
+    ctx.arc(0, r * 0.84, r * 0.19, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+
   function drawLilyPad(t) {
     ctx.save()
     ctx.translate(cat.x, padY)
@@ -1656,6 +1877,9 @@
       var item = items[i]
       if (item.type === 'bomb') drawBomb(item.x, item.y, item.r, visualClock)
       else if (item.type === 'milk') drawMilk(item.x, item.y, item.r, visualClock)
+      else if (item.type === 'time') drawHourglass(item.x, item.y, item.r, visualClock)
+      else if (item.type === 'kelp') drawKelp(item.x, item.y, item.r, visualClock)
+      else if (item.type === 'bell') drawBell(item.x, item.y, item.r, visualClock)
       else drawFish(item.x, item.y, item.r, item.type === 'gold', visualClock)
     }
 
@@ -1720,6 +1944,22 @@
       openCollection()
     }
 
+    // 无头看美术用：?props=1 把七种道具一字排开，方便一眼看全
+    if (params.has('props') && mode === 'play' && game) {
+      var showcase = ['fish', 'gold', 'bomb', 'milk', 'time', 'kelp', 'bell']
+      for (var p = 0; p < showcase.length; p += 1) {
+        game.items.push({
+          type: showcase[p],
+          x: 52 + p * 62,
+          y: 130 + (p % 3) * 96,
+          r: 18,
+          vy: 0,
+          sway: 0,
+          phase: 0,
+        })
+      }
+    }
+
     // 无头截图用：把这一局直接快进 N 秒算完，再画一帧
     if (ADVANCE > 0 && mode === 'play' && game) {
       var steps = Math.round(ADVANCE * 60)
@@ -1736,7 +1976,7 @@
     if (REPORT) {
       document.title = 'RESULT mode=' + mode + ' score=' + (game ? game.score : 0) + ' target=' + (game ? game.target : 0) +
         ' lives=' + (game ? game.lives : 0) + ' level=' + (game ? game.level : 0) + ' combo=' + (game ? game.bestCombo : 0) +
-        ' used=' + (game ? (game.rules.seconds - game.time).toFixed(1) : '0') +
+        ' used=' + (game ? (game.steps * SIM.step).toFixed(1) : '0') +
         ' won=' + (game && game.score >= game.target ? 1 : 0) +
         ' vw=' + window.innerWidth + ' docW=' + document.documentElement.scrollWidth +
         ' stageW=' + Math.round(stage.getBoundingClientRect().width)
