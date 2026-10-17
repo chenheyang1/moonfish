@@ -49,12 +49,21 @@ node scripts/game-build.mjs           # 改完码重新生成 release/moonfish.h
 ```
 
 `set` 会把码转成混淆串写进页面，源码里看不到明文，**只有赢了才会解出那一张**。
+每次赢会从还没发出的码里**随机抽一张**：顺序随机，但不重复。
+
+懒得自己编码就让脚本随机生成（可以当领奖口令用）：
+
+```bash
+node scripts/game-codes.mjs gen --count 3                  # → MOON-7K2Q-9X4D 这样的随机码
+node scripts/game-codes.mjs gen --count 3 --prefix LING
+```
 
 ### 一人一份（三个人不重复）
 
 ```bash
 node scripts/game-codes.mjs set CODE-1 CODE-2 CODE-3
-node scripts/game-build.mjs --split 3      # → release/split/moonfish-1..3.html
+node scripts/game-build.mjs --split 3              # → release/split/moonfish-1..3.html
+node scripts/game-build.mjs --split 3 --shuffle    # 同上，哪个码进第几份也随机
 ```
 
 每份只带一个码、页脚标着「第 N 份」，一人一份发出去，三个人不会拿到重复的码；

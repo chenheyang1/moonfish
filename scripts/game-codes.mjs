@@ -8,6 +8,7 @@
  * Usage:
  *   node scripts/game-codes.mjs set ABCD-1111 EFGH-2222 IJKL-3333 MNOP-4444 QRST-5555
  *   node scripts/game-codes.mjs set --file codes.txt      # 一行一个码
+ *   node scripts/game-codes.mjs gen --count 3              # 随机生成 3 个码（当口令用）
  *   node scripts/game-codes.mjs list                      # 看看现在填了什么
  *   node scripts/game-codes.mjs clear                     # 清空，回到手填模板
  *
@@ -91,6 +92,26 @@ function parseArgs(argv) {
   return args
 }
 
+/** 随机码用的字母表：去掉了容易看错的 I O 0 1 */
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+/** 生成一个形如 MOON-7K2Q-9X4D 的随机码。rand 可注入，方便测试。 */
+export function randomCode(prefix = 'MOON', rand = Math.random) {
+  const chunk = (size) =>
+    Array.from({ length: size }, () => CODE_ALPHABET[Math.floor(rand() * CODE_ALPHABET.length)]).join('')
+  return `${prefix}-${chunk(4)}-${chunk(4)}`
+}
+
+/** 洗牌（Fisher–Yates），rand 可注入。 */
+export function shuffle(list, rand = Math.random) {
+  const out = list.slice()
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
+
 function readInputCodes(args) {
   if (args.file) {
     return readFileSync(args.file, 'utf8').split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#'))
@@ -121,6 +142,31 @@ function main() {
     return
   }
 
+  if (command === 'gen') {
+    const argValue = (flag) => {
+      const at = argv.indexOf(flag)
+      return at >= 0 ? argv[at + 1] : undefined
+    }
+    const count = Number(argValue('--count') || 3)
+    if (!Number.isInteger(count) || count < 1 || count > 20) {
+      console.error('--count 要 1~20，例如 --count 3')
+      process.exitCode = 1
+      return
+    }
+    const prefix = (argValue('--prefix') || 'MOON').toUpperCase().replace(/[^A-Z0-9]/g, '') || 'MOON'
+    const codes = []
+    while (codes.length < count) {
+      const code = randomCode(prefix)
+      if (!codes.includes(code)) codes.push(code)
+    }
+    writeFileSync(args.game, writeCodes(html, codes).html)
+    console.log(`随机生成并写入 ${codes.length} 个码 → ${args.game}`)
+    codes.forEach((code, index) => console.log(`  ${index + 1}. ${code}`))
+    console.log('提醒：这些是随机字符串，只有你在对端把它们登记成"能兑的东西"才有意义（比如当领奖口令）。')
+    console.log('下一步：node scripts/game-build.mjs --split ' + count + '  [--shuffle]')
+    return
+  }
+
   if (command === 'clear') {
     writeFileSync(args.game, clearCodes(html))
     console.log(`已清空兑换码 → ${args.game}（回到手填模板）`)
@@ -139,7 +185,7 @@ function main() {
     return
   }
 
-  console.error(`不认识这个命令：${command}。可用：set / list / clear`)
+  console.error(`不认识这个命令：${command}。可用：set / gen / list / clear`)
   process.exitCode = 1
 }
 

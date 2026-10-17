@@ -12,13 +12,14 @@
  * if you send two files to the same person, they can win two codes.)
  *
  * Usage:
- *   node scripts/game-build.mjs                  # 一份，带全部码
+ *   node scripts/game-build.mjs                  # 一份，带全部码（赢一局随机抽一张）
  *   node scripts/game-build.mjs --split 3        # 三份，每份只含 1 个码
+ *   node scripts/game-build.mjs --split 3 --shuffle   # 同上，但哪个码进第几份也随机
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DEFAULT_GAME, readCodes, writeCodes } from './game-codes.mjs'
+import { DEFAULT_GAME, readCodes, shuffle, writeCodes } from './game-codes.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
@@ -76,7 +77,9 @@ function main() {
     }
     const dir = join(root, 'release', 'split')
     mkdirSync(dir, { recursive: true })
-    for (const part of buildSplit(html, current.codes, dataUri)) {
+    // --shuffle：第 1 份拿哪个码也随机，别让人从"第几份"猜出"哪个码"
+    const ordered = argv.includes('--shuffle') ? shuffle(current.codes) : current.codes
+    for (const part of buildSplit(html, ordered, dataUri)) {
       const file = join(dir, `moonfish-${part.index + 1}.html`)
       writeFileSync(file, part.html)
       console.log(`第 ${part.index + 1} 份 → ${file}（只含 ${part.code}，${(part.html.length / 1024).toFixed(0)} KB）`)

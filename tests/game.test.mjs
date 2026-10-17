@@ -14,7 +14,7 @@ import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { clearCodes, loadCodec, readCodes, writeCodes } from '../scripts/game-codes.mjs'
+import { clearCodes, loadCodec, randomCode, readCodes, shuffle, writeCodes } from '../scripts/game-codes.mjs'
 import { buildSplit, inlineArt, stampSlot } from '../scripts/game-build.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -63,6 +63,25 @@ test('clearing puts the page back to its empty template', () => {
   const cleared = clearCodes(writeCodes(page, CODES).html)
   assert.deepEqual(readCodes(cleared).codes, [])
   assert.equal(cleared, page, 'clear restores the shipped file byte for byte')
+})
+
+test('随机码：格式对、不重复、不打乱时保持原顺序', () => {
+  let seed = 1
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647
+    return (seed - 1) / 2147483646
+  }
+  const code = randomCode('MOON', rand)
+  assert.match(code, /^MOON-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
+  assert.ok(!/[IO01]/.test(code.slice(5)), '不该出现容易看错的 I O 0 1')
+
+  const many = new Set(Array.from({ length: 50 }, () => randomCode('MOON')))
+  assert.ok(many.size > 40, '随机码不该大面积撞车')
+
+  const source = [1, 2, 3, 4, 5, 6, 7, 8]
+  const mixed = shuffle(source, rand)
+  assert.deepEqual(mixed.slice().sort((a, b) => a - b), source, '洗牌不能丢元素')
+  assert.notDeepEqual(mixed, source, '洗牌应该真的打乱过')
 })
 
 test('拆成一人一份：每份只有一个码，别的码不会泄露', () => {
