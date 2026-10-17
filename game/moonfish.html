@@ -1,0 +1,1753 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<title>月下捞鱼 · 赢了才给兑换码</title>
+<style>
+  :root {
+    --ink: #070d14;
+    --panel: #101d2b;
+    --water: #123240;
+    --moon: #e9eef1;
+    --muted: #93a8b3;
+    --gold: #e8b04b;
+    --gold-soft: #f3d79a;
+    --gold-deep: #a9761f;
+    --iris: #9b7cf0;
+    --cinnabar: #cf4a2f;
+    --weed: #2f8f7d;
+    --font-display: "Songti SC", "STSong", "Source Han Serif SC", "Noto Serif SC", serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    padding: 22px 16px 28px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: radial-gradient(120% 78% at 50% -12%, #16323f 0%, #0c1a25 46%, #050a10 100%);
+    color: var(--moon);
+    font: 15px/1.6 var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  .shell { width: min(560px, 100%); display: flex; flex-direction: column; gap: 14px; }
+
+  .topbar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 12px; }
+  .eyebrow {
+    margin: 0 0 4px;
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--gold-deep);
+  }
+  .brand h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 27px;
+    font-weight: 600;
+    letter-spacing: .14em;
+  }
+  .topbar-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+  .shell, .topbar, .topbar-actions { min-width: 0; }
+
+  .stage {
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: 20px;
+    overflow: hidden;
+    background: #081119;
+    box-shadow: 0 34px 60px -34px #000, inset 0 0 0 1px rgba(232, 176, 75, .18);
+  }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  .hud {
+    position: absolute;
+    inset: 14px 16px auto 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    text-shadow: 0 1px 4px rgba(4, 10, 16, .85);
+  }
+  .hud-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .hud-label { font-size: 11px; letter-spacing: .18em; color: var(--muted); margin-right: 6px; }
+  .score { font-family: var(--font-mono); font-size: 26px; font-weight: 600; color: var(--gold-soft); }
+  .hud-target { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .hud-meta { display: flex; align-items: center; gap: 12px; }
+  .lives { display: flex; gap: 4px; }
+  .bell { width: 15px; height: 15px; fill: var(--gold); }
+  .bell-off { fill: rgba(233, 238, 241, .16); }
+  .clock { font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+  .progress { height: 4px; border-radius: 999px; background: rgba(233, 238, 241, .12); overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, var(--gold-deep), var(--gold)); transition: width .18s ease; }
+
+  .combo {
+    position: absolute;
+    left: 50%;
+    top: 62px;
+    transform: translateX(-50%);
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(155, 124, 240, .5);
+    background: rgba(11, 19, 28, .72);
+    color: var(--iris);
+    font-size: 13px;
+    letter-spacing: .06em;
+    pointer-events: none;
+  }
+  .combo b { font-family: var(--font-mono); font-size: 15px; }
+  .combo span { color: var(--gold-soft); font-family: var(--font-mono); }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(6, 11, 17, .74), rgba(6, 11, 17, .92));
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+  }
+  .overlay[hidden] { display: none; }
+  .card {
+    width: 100%;
+    max-width: 366px;
+    padding: 22px 22px 20px;
+    border-radius: 18px;
+    border: 1px solid rgba(232, 176, 75, .26);
+    background: linear-gradient(180deg, #111f2e, #0a121b);
+    box-shadow: 0 26px 50px -30px #000;
+    text-align: center;
+  }
+  .card h2 {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: .1em;
+  }
+  .lede { margin: 0 0 12px; font-size: 13.5px; color: #c3d2da; }
+  .lede b { color: var(--gold-soft); font-weight: 600; }
+  .meta { margin: 0 0 16px; font-size: 12.5px; color: var(--muted); font-family: var(--font-mono); }
+  .legend { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 12.5px; color: #c3d2da; }
+  .legend li { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .dot-fish { background: var(--weed); }
+  .dot-gold { background: var(--gold); }
+  .dot-milk { background: #e9eef1; }
+  .dot-bomb { background: var(--cinnabar); }
+  .actions { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; margin: 4px 0 0; }
+  .hint { margin: 12px 0 0; font-size: 11.5px; color: var(--muted); }
+  .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  .btn {
+    appearance: none;
+    border: 1px solid rgba(232, 176, 75, .34);
+    border-radius: 11px;
+    padding: 11px 18px;
+    background: linear-gradient(180deg, rgba(232, 176, 75, .16), rgba(232, 176, 75, .05));
+    color: var(--gold-soft);
+    font: 600 14px/1.3 var(--font-body);
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, transform .1s ease;
+  }
+  .btn:hover { background: linear-gradient(180deg, rgba(232, 176, 75, .26), rgba(232, 176, 75, .1)); border-color: rgba(232, 176, 75, .55); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: 2px solid var(--iris); outline-offset: 2px; }
+  .btn-primary { background: linear-gradient(180deg, #f0c268, #c78d2b); border-color: #f3d79a; color: #26180a; }
+  .btn-primary:hover { background: linear-gradient(180deg, #f7cf7c, #d59a33); }
+  .btn-ghost { border-color: rgba(233, 238, 241, .18); background: transparent; color: var(--muted); font-weight: 500; padding: 7px 12px; font-size: 12.5px; }
+  .btn-ghost:hover { background: rgba(233, 238, 241, .07); border-color: rgba(233, 238, 241, .3); color: var(--moon); }
+  .btn-danger { border-color: rgba(207, 74, 47, .4); color: #e2836c; }
+  .btn-danger:hover { background: rgba(207, 74, 47, .14); border-color: rgba(207, 74, 47, .6); color: #f0a48f; }
+  .pill {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(232, 176, 75, .16);
+    color: var(--gold-soft);
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+  }
+
+  /* 招牌：钓上来的木牌兑换券 */
+  .tag {
+    position: relative;
+    margin: 26px auto 14px;
+    padding: 16px 18px 18px;
+    border-radius: 10px;
+    background: linear-gradient(158deg, #d3a468, #b07f42 52%, #8d5f2d);
+    color: #2a1a0b;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .38), inset 0 -2px 6px rgba(0, 0, 0, .28), 0 20px 34px -22px #000;
+    transform-origin: 50% -70px;
+    animation: tag-swing 3.4s ease-in-out infinite alternate;
+  }
+  .tag::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -52px;
+    width: 2px;
+    height: 52px;
+    margin-left: -1px;
+    background: linear-gradient(180deg, rgba(232, 176, 75, 0), var(--gold));
+  }
+  .tag::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: -16px;
+    width: 15px;
+    height: 15px;
+    margin-left: -7.5px;
+    border-radius: 50% 50% 42% 42%;
+    background: radial-gradient(circle at 34% 28%, #ffe9b4, var(--gold) 58%, #97671b);
+    box-shadow: 0 0 0 2px rgba(42, 26, 11, .5);
+  }
+  .tag-index { display: block; font-size: 11px; letter-spacing: .2em; color: rgba(42, 26, 11, .66); margin-bottom: 8px; }
+  .tag-code {
+    display: block;
+    font: 600 21px/1.35 var(--font-mono);
+    letter-spacing: .1em;
+    word-break: break-all;
+    -webkit-user-select: all;
+    user-select: all;
+  }
+  @keyframes tag-swing { from { transform: rotate(-3.2deg); } to { transform: rotate(2.4deg); } }
+
+  .taglist { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+  .taglist li { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .slot-no { width: 22px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .slot-code {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    letter-spacing: .06em;
+    word-break: break-all;
+    background: linear-gradient(158deg, #d3a468, #a9761f);
+    color: #2a1a0b;
+    -webkit-user-select: all;
+    user-select: all;
+  }
+  .slot-locked { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px dashed rgba(233, 238, 241, .2); color: var(--muted); font-size: 12.5px; }
+
+  .toast {
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    transform: translateX(-50%);
+    max-width: calc(100% - 32px);
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(11, 19, 28, .92);
+    border: 1px solid rgba(232, 176, 75, .3);
+    color: var(--gold-soft);
+    font-size: 12.5px;
+    text-align: center;
+  }
+  .toast[hidden] { display: none; }
+
+  .foot { color: var(--muted); font-size: 12px; text-align: center; }
+
+  @media (max-width: 430px) {
+    body { padding: 16px 12px 22px; }
+    .brand h1 { font-size: 23px; }
+    .score { font-size: 23px; }
+    .foot { font-size: 11.5px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tag { animation: none; }
+    .progress-fill { transition: none; }
+    .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <p class="eyebrow">DSH 宠物 · 小游戏</p>
+      <h1>月下捞鱼</h1>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" class="btn btn-ghost" id="btn-sound" aria-pressed="true">音效开</button>
+      <button type="button" class="btn btn-ghost" id="btn-collection">兑换码<span class="pill" id="owned-pill">0/5</span></button>
+    </div>
+  </header>
+
+  <section class="stage" id="stage">
+    <canvas id="pond" aria-label="游戏画面：小猫坐在荷叶上，接住天上掉下来的鱼"></canvas>
+
+    <div class="hud">
+      <div class="hud-row">
+        <div>
+          <span class="hud-label">得分</span><span class="score" id="score">0</span>
+          <span class="hud-target">/ <span id="hud-target">220</span></span>
+        </div>
+        <div class="hud-meta">
+          <div class="lives" id="lives" role="img" aria-label="剩余生命 3"></div>
+          <span class="clock"><span id="clock">30.0</span>s</span>
+        </div>
+      </div>
+      <div class="progress"><div class="progress-fill" id="progress"></div></div>
+    </div>
+
+    <div class="combo" id="combo" hidden>连击 <b id="combo-n">0</b> <span id="combo-x">×1</span></div>
+    <p class="sr-only" id="live" aria-live="polite"></p>
+
+    <div class="overlay" id="overlay-menu">
+      <div class="card">
+        <p class="eyebrow" id="menu-eyebrow">第 1 局</p>
+        <h2>捞鱼换码</h2>
+        <p class="lede">左右挪动荷叶上的猫，接住天上掉下来的鱼。<b>分数够了才算赢</b>，赢一局才解一张兑换码。</p>
+        <ul class="legend">
+          <li><i class="dot dot-fish"></i>小鱼 +10</li>
+          <li><i class="dot dot-gold"></i>金鱼 +25</li>
+          <li><i class="dot dot-milk"></i>奶瓶 +1 条命</li>
+          <li><i class="dot dot-bomb"></i>炸弹 −1 条命</li>
+        </ul>
+        <p class="meta" id="menu-meta">目标 220 分 · 3 条命 · 30 秒</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" id="btn-start">开始捞鱼</button>
+        </div>
+        <p class="hint">← → 或 A D 移动，也可以直接拖动荷叶 · 空格开始</p>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay-result" hidden>
+      <div class="card" id="result-card"></div>
+    </div>
+
+    <div class="overlay" id="overlay-collection" hidden>
+      <div class="card">
+        <p class="eyebrow">收藏</p>
+        <h2>我的兑换码</h2>
+        <p class="lede" id="collection-lede"></p>
+        <ol class="taglist" id="taglist"></ol>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" id="btn-collection-close">回到游戏</button>
+          <button type="button" class="btn btn-ghost btn-danger" id="btn-reset">重置进度</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+  </section>
+
+  <footer class="foot">赢一局解一张码，解过的码收在「兑换码」里</footer>
+</main>
+
+<noscript><p style="text-align:center">这个游戏需要开启 JavaScript。</p></noscript>
+
+<script>
+(function () {
+  'use strict'
+
+  /* ════════════════════════════════════════════════════════════════
+     1. 兑换码配置区（只有赢了才会解开一张）
+        填法 A：直接把 5 个码写进下面 PLAIN_CODES 的引号里
+        填法 B：在项目根目录跑
+                node scripts/game-codes.mjs set 码1 码2 码3 码4 码5
+                它会写成 ENCODED_CODES，免得有人直接看源码白拿
+        ENCODED_CODES 非空时优先，PLAIN_CODES 就被忽略
+     ════════════════════════════════════════════════════════════════ */
+  var PLAIN_CODES = [
+    '',
+    '',
+    '',
+    '',
+    '',
+  ]
+  var ENCODED_CODES = ''
+
+  /* ══ 2. 对局内核（页面和校验服务端跑的是同一段） ═════════════════
+     规矩只有一条：这里不许碰 DOM、不许用 Math.random / Date。
+     同一个种子 + 同一串荷叶位置 ⇒ 必须算出同一个分数。
+     服务端会把这个区块原样抠出来重跑一遍，所以"这一局赢了"由服务端说了算，
+     浏览器再怎么改也只能改自己屏幕上的画面。
+     想调难度就改下面的 LEVELS。
+     ═══════════════════════════════════════════════════════════════ */
+  // #region sim
+  var SIM = {
+    width: 480,        // 内核坐标，和画布大小无关：屏幕多大都算同一局
+    height: 600,
+    waterY: 432,
+    padY: 528,
+    padHalf: 52,
+    step: 1 / 60,
+    maxLives: 5,
+    comboStep: 5,
+    maxMultiplier: 3,
+    playerSpeed: 540,
+    margin: 34,
+  }
+
+  // 难度按"已经赢过几局"递增：第一局手松一点，第五局得真会玩
+  var LEVELS = [
+    { target: 125, seconds: 30, lives: 3, fallSpeed: 104, spawnEvery: 0.62, bombChance: 0.13, goldChance: 0.08, milkChance: 0.07 },
+    { target: 180, seconds: 30, lives: 3, fallSpeed: 118, spawnEvery: 0.58, bombChance: 0.15, goldChance: 0.08, milkChance: 0.07 },
+    { target: 205, seconds: 30, lives: 3, fallSpeed: 132, spawnEvery: 0.54, bombChance: 0.17, goldChance: 0.08, milkChance: 0.07 },
+    { target: 225, seconds: 30, lives: 3, fallSpeed: 148, spawnEvery: 0.5, bombChance: 0.19, goldChance: 0.08, milkChance: 0.07 },
+    { target: 250, seconds: 30, lives: 3, fallSpeed: 164, spawnEvery: 0.46, bombChance: 0.22, goldChance: 0.08, milkChance: 0.07 },
+  ]
+
+  function mulberry32(seed) {
+    var state = (seed >>> 0) || 1
+    return function () {
+      state = (state + 0x6d2b79f5) >>> 0
+      var t = state
+      t = Math.imul(t ^ (t >>> 15), t | 1)
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+    }
+  }
+
+  function clampX(x) {
+    return Math.min(Math.max(x, SIM.padHalf), SIM.width - SIM.padHalf)
+  }
+
+  function multiplierOf(round) {
+    return Math.min(1 + Math.floor(round.combo / SIM.comboStep), SIM.maxMultiplier)
+  }
+
+  function createRound(seed, level) {
+    var lv = Math.max(0, Math.min(level | 0, LEVELS.length - 1))
+    var rules = LEVELS[lv]
+    return {
+      seed: seed >>> 0,
+      level: lv,
+      rules: rules,
+      rand: mulberry32(seed),
+      t: 0,
+      time: rules.seconds,
+      score: 0,
+      target: rules.target,
+      lives: rules.lives,
+      combo: 0,
+      bestCombo: 0,
+      items: [],
+      spawnTimer: 0.35,
+      catX: SIM.width / 2,
+      steps: 0,
+      status: 'playing',
+      reason: '',
+      events: [],
+    }
+  }
+
+  function spawnIn(round) {
+    var rules = round.rules
+    var rand = round.rand
+    var roll = rand()
+    var type = 'fish'
+    if (round.lives < SIM.maxLives && roll < rules.milkChance) type = 'milk'
+    else if (roll < rules.milkChance + rules.goldChance) type = 'gold'
+    else if (roll < rules.milkChance + rules.goldChance + rules.bombChance) type = 'bomb'
+    var speed = rules.fallSpeed * (SIM.height / 640) * (0.9 + rand() * 0.25)
+    round.items.push({
+      type: type,
+      x: SIM.margin + rand() * (SIM.width - SIM.margin * 2),
+      y: -28,
+      r: type === 'fish' ? 16 : 17,
+      vy: type === 'bomb' ? speed * 1.06 : speed,
+      sway: (rand() - 0.5) * (type === 'gold' ? 34 : 16),
+      phase: rand() * Math.PI * 2,
+    })
+  }
+
+  function endRound(round, won, reason) {
+    round.status = won ? 'won' : 'lost'
+    round.reason = reason
+    round.events.push({ type: 'end', won: won, reason: reason, score: round.score })
+  }
+
+  function resolveCatch(round, item) {
+    var events = round.events
+    if (item.type === 'bomb') {
+      round.lives -= 1
+      round.combo = 0
+      events.push({ type: 'bomb', x: item.x, y: item.y })
+      if (round.lives <= 0) endRound(round, false, 'bomb')
+      return
+    }
+    if (item.type === 'milk') {
+      round.lives = Math.min(SIM.maxLives, round.lives + 1)
+      events.push({ type: 'milk', x: item.x, y: item.y })
+      return
+    }
+    var mult = multiplierOf(round)
+    var gain = (item.type === 'gold' ? 25 : 10) * mult
+    round.combo += 1
+    if (round.combo > round.bestCombo) round.bestCombo = round.combo
+    round.score += gain
+    events.push({ type: 'catch', gold: item.type === 'gold', x: item.x, y: item.y, gain: gain, mult: mult })
+    if (round.score >= round.target) endRound(round, true, 'target')
+  }
+
+  /** 推进一帧。catX 是这一帧荷叶的位置——服务端回放时用的就是客户端上报的值。 */
+  function stepRound(round, catX, dt) {
+    var events = round.events
+    events.length = 0
+    if (round.status !== 'playing') return events
+    round.steps += 1
+    round.t += dt
+    round.time -= dt
+    if (round.time <= 0) {
+      round.time = 0
+      endRound(round, false, 'time')
+      return events
+    }
+    round.spawnTimer -= dt
+    if (round.spawnTimer <= 0) {
+      spawnIn(round)
+      round.spawnTimer = round.rules.spawnEvery * (0.82 + round.rand() * 0.36)
+    }
+    var x = clampX(catX)
+    round.catX = x
+    var catchTop = SIM.padY - 74
+    var catchBottom = SIM.padY + 10
+    for (var i = round.items.length - 1; i >= 0; i -= 1) {
+      var item = round.items[i]
+      item.y += item.vy * dt
+      item.x = Math.min(Math.max(item.x + Math.sin(round.t * 2 + item.phase) * item.sway * dt, 18), SIM.width - 18)
+      if (item.y >= catchTop - item.r && item.y <= catchBottom + item.r && Math.abs(item.x - x) <= SIM.padHalf + item.r * 0.4) {
+        round.items.splice(i, 1)
+        resolveCatch(round, item)
+        if (round.status !== 'playing') return events
+        continue
+      }
+      if (item.y - item.r > SIM.waterY + 20) {
+        round.items.splice(i, 1)
+        events.push({ type: 'splash', x: item.x, y: SIM.waterY + 6 })
+        if (item.type === 'fish' || item.type === 'gold') {
+          if (round.combo >= 5) events.push({ type: 'combo-break', x: item.x, y: SIM.waterY - 6 })
+          round.combo = 0
+        }
+      }
+    }
+    return events
+  }
+
+  // #endregion sim
+
+  /* ══ 3. 兑换码编解码 ═════════════════════════════════════════════
+     只是混淆：能挡住顺手看源码的人，挡不住铁了心逆向的人。
+     真要防作弊得把校验放到服务端。scripts/game-codes.mjs 直接抠这段用，
+     所以这里改了，命令行工具会跟着一起改。
+     ═══════════════════════════════════════════════════════════════ */
+  // #region codec
+  var CODE_KEY = 'dsh-pet/moonfish/v1'
+  function codeMask(bytes) {
+    var out = new Uint8Array(bytes.length)
+    for (var i = 0; i < bytes.length; i += 1) {
+      out[i] = bytes[i] ^ (CODE_KEY.charCodeAt(i % CODE_KEY.length) & 0xff) ^ ((i * 31 + 7) & 0xff)
+    }
+    return out
+  }
+  function bytesToBase64(bytes) {
+    var bin = ''
+    for (var i = 0; i < bytes.length; i += 1) bin += String.fromCharCode(bytes[i])
+    return btoa(bin)
+  }
+  function base64ToBytes(text) {
+    var bin = atob(text)
+    var out = new Uint8Array(bin.length)
+    for (var i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i)
+    return out
+  }
+  function encodeCodePool(list) {
+    var text = list.map(function (code) { return String(code).trim() }).filter(Boolean).join('\n')
+    return bytesToBase64(codeMask(new TextEncoder().encode(text)))
+  }
+  function decodeCodePool(blob) {
+    if (!blob) return []
+    try {
+      var text = new TextDecoder().decode(codeMask(base64ToBytes(blob)))
+      // 手改坏了就别硬撑：宁可当成"没填过码"，也别把乱码当兑换码发出去
+      if (text.indexOf('\uFFFD') !== -1) return []
+      return text.split('\n')
+        .map(function (line) { return line.trim() })
+        .filter(function (line) { return line && !/[\u0000-\u001f]/.test(line) })
+    } catch (err) {
+      return []
+    }
+  }
+  // #endregion codec
+
+  /* ══ 4. 运行环境与存档 ═══════════════════════════════════════════ */
+  var params = new URLSearchParams(window.location.search)
+  var DEMO = params.has('demo')
+  var BOT = params.has('bots')
+  var FORCED = params.get('state')
+  // 调试用：?advance=30 先把 30 秒的比赛快进算完，?report=1 把结果写进标题，
+  // 这样无头浏览器截图/自检也能看到一局完整的对局。
+  var ADVANCE = Number(params.get('advance') || 0)
+  var REPORT = params.has('report')
+  var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  var SAVE_KEY = 'dsh-pet/moonfish/v1'
+
+  var DEMO_CODES = ['DEMO-1111-1111', 'DEMO-2222-2222', 'DEMO-3333-3333', 'DEMO-4444-4444', 'DEMO-5555-5555']
+
+  var pool = DEMO
+    ? DEMO_CODES.slice()
+    : (ENCODED_CODES ? decodeCodePool(ENCODED_CODES) : PLAIN_CODES.map(function (c) { return String(c).trim() }).filter(Boolean))
+
+  var save = { claimed: [], rounds: 0, wins: 0, best: 0, muted: false }
+
+  function loadSave() {
+    if (params.get('reset') === '1') {
+      try { window.localStorage.removeItem(SAVE_KEY) } catch (err) { /* 隐私模式：静默降级 */ }
+      return
+    }
+    if (DEMO) return
+    try {
+      var raw = window.localStorage.getItem(SAVE_KEY)
+      if (!raw) return
+      var parsed = JSON.parse(raw)
+      if (Array.isArray(parsed.claimed)) save.claimed = parsed.claimed.filter(function (i) { return typeof i === 'number' })
+      if (typeof parsed.rounds === 'number') save.rounds = parsed.rounds
+      if (typeof parsed.wins === 'number') save.wins = parsed.wins
+      if (typeof parsed.best === 'number') save.best = parsed.best
+      save.muted = parsed.muted === true
+    } catch (err) { /* 坏存档就当没有 */ }
+  }
+
+  function persist() {
+    if (DEMO || FORCED) return
+    try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(save)) } catch (err) { /* 存不了就算了 */ }
+  }
+
+  loadSave()
+  if (DEMO && params.has('wins')) save.wins = Math.max(0, Number(params.get('wins')) || 0)
+  if (DEMO && params.has('owned')) save.claimed = pool.map(function (_, index) { return index }).slice(0, Math.max(0, Number(params.get('owned')) || 0))
+  save.claimed = save.claimed.filter(function (i) { return i >= 0 && i < pool.length })
+
+  /* ══ 5. 音效（没有音频文件，全部现场合成） ══════════════════════ */
+  var audio = { ctx: null, on: !save.muted }
+
+  function beep(freq, duration, type, gain, delay) {
+    if (!audio.on) return
+    try {
+      if (!audio.ctx) audio.ctx = new (window.AudioContext || window.webkitAudioContext)()
+      var ctx = audio.ctx
+      if (ctx.state === 'suspended') ctx.resume()
+      var start = ctx.currentTime + (delay || 0)
+      var osc = ctx.createOscillator()
+      var vol = ctx.createGain()
+      osc.type = type || 'triangle'
+      osc.frequency.setValueAtTime(freq, start)
+      vol.gain.setValueAtTime(0.0001, start)
+      vol.gain.exponentialRampToValueAtTime(gain || 0.09, start + 0.012)
+      vol.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+      osc.connect(vol).connect(ctx.destination)
+      osc.start(start)
+      osc.stop(start + duration + 0.02)
+    } catch (err) { /* 没声音也要能玩 */ }
+  }
+
+  var sfx = {
+    catch: function () { beep(660, 0.09, 'triangle', 0.07) },
+    gold: function () { beep(880, 0.09, 'triangle', 0.08); beep(1320, 0.12, 'triangle', 0.06, 0.07) },
+    milk: function () { beep(520, 0.1, 'sine', 0.09); beep(780, 0.14, 'sine', 0.07, 0.08) },
+    bomb: function () { beep(120, 0.24, 'sawtooth', 0.1); beep(70, 0.3, 'square', 0.06, 0.02) },
+    win: function () { beep(523, 0.14, 'triangle', 0.08); beep(659, 0.14, 'triangle', 0.08, 0.13); beep(784, 0.26, 'triangle', 0.09, 0.26) },
+    lose: function () { beep(392, 0.18, 'sine', 0.08); beep(294, 0.3, 'sine', 0.08, 0.16) },
+  }
+
+  /* ══ 6. DOM ═════════════════════════════════════════════════════ */
+  var stage = document.getElementById('stage')
+  var canvas = document.getElementById('pond')
+  var ctx = canvas.getContext('2d')
+  var el = {
+    score: document.getElementById('score'),
+    target: document.getElementById('hud-target'),
+    clock: document.getElementById('clock'),
+    lives: document.getElementById('lives'),
+    progress: document.getElementById('progress'),
+    combo: document.getElementById('combo'),
+    comboN: document.getElementById('combo-n'),
+    comboX: document.getElementById('combo-x'),
+    live: document.getElementById('live'),
+    overlayMenu: document.getElementById('overlay-menu'),
+    menuEyebrow: document.getElementById('menu-eyebrow'),
+    menuMeta: document.getElementById('menu-meta'),
+    overlayResult: document.getElementById('overlay-result'),
+    resultCard: document.getElementById('result-card'),
+    overlayCollection: document.getElementById('overlay-collection'),
+    collectionLede: document.getElementById('collection-lede'),
+    taglist: document.getElementById('taglist'),
+    ownedPill: document.getElementById('owned-pill'),
+    sound: document.getElementById('btn-sound'),
+    collection: document.getElementById('btn-collection'),
+    toast: document.getElementById('toast'),
+  }
+
+  var toastTimer = 0
+  function toast(message) {
+    el.toast.textContent = message
+    el.toast.hidden = false
+    window.clearTimeout(toastTimer)
+    toastTimer = window.setTimeout(function () { el.toast.hidden = true }, 2600)
+  }
+
+  function bell(filled) {
+    return '<svg class="bell' + (filled ? '' : ' bell-off') + '" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M12 2.6c3.3 0 5.6 2.5 5.6 5.9 0 3.6 1 4.9 2 5.8.6.5.2 1.4-.5 1.4H4.9c-.7 0-1.1-.9-.5-1.4 1-.9 2-2.2 2-5.8 0-3.4 2.3-5.9 5.6-5.9z"/>' +
+      '<path d="M10 18.6h4a2 2 0 0 1-4 0z"/></svg>'
+  }
+
+  /* ══ 7. 画布尺寸与背景 ══════════════════════════════════════════
+     W/H 就是内核坐标（480×600）：画面按 view.scale 缩放，判定永远在内核
+     坐标里做，所以屏幕多大、手机横屏竖屏，难度都一模一样。
+     ═══════════════════════════════════════════════════════════════ */
+  var W = SIM.width
+  var H = SIM.height
+  var waterY = SIM.waterY
+  var padY = SIM.padY
+  var backdrop = document.createElement('canvas')
+  var view = { scale: 1 }
+
+  function sizeCanvas() {
+    var rect = stage.getBoundingClientRect()
+    var dpr = Math.min(window.devicePixelRatio || 1, 2)
+    canvas.width = Math.round(Math.max(200, rect.width) * dpr)
+    canvas.height = Math.round(Math.max(250, rect.height) * dpr)
+    view.scale = canvas.width / SIM.width
+    cat.y = SIM.padY - 34
+    cat.x = clampX(cat.x)
+    cat.tx = cat.x
+    paintBackdrop()
+  }
+
+  function paintBackdrop() {
+    backdrop.width = canvas.width
+    backdrop.height = canvas.height
+    var g = backdrop.getContext('2d')
+    g.setTransform(view.scale, 0, 0, view.scale, 0, 0)
+
+    var sky = g.createLinearGradient(0, 0, 0, waterY)
+    sky.addColorStop(0, '#061019')
+    sky.addColorStop(0.55, '#0c2130')
+    sky.addColorStop(1, '#123543')
+    g.fillStyle = sky
+    g.fillRect(0, 0, W, waterY)
+
+    var moonX = W * 0.73
+    var moonY = H * 0.205
+    var moonR = Math.min(W, H) * 0.1
+    var halo = g.createRadialGradient(moonX, moonY, moonR * 0.6, moonX, moonY, moonR * 4)
+    halo.addColorStop(0, 'rgba(232, 240, 245, .18)')
+    halo.addColorStop(1, 'rgba(232, 240, 245, 0)')
+    g.fillStyle = halo
+    g.beginPath()
+    g.arc(moonX, moonY, moonR * 4, 0, Math.PI * 2)
+    g.fill()
+    g.fillStyle = '#eef3f5'
+    g.beginPath()
+    g.arc(moonX, moonY, moonR, 0, Math.PI * 2)
+    g.fill()
+    g.fillStyle = 'rgba(180, 197, 205, .35)'
+    g.beginPath()
+    g.arc(moonX - moonR * 0.3, moonY - moonR * 0.25, moonR * 0.18, 0, Math.PI * 2)
+    g.arc(moonX + moonR * 0.35, moonY + moonR * 0.3, moonR * 0.12, 0, Math.PI * 2)
+    g.fill()
+
+    var starRand = mulberry32(20241016)
+    for (var i = 0; i < 44; i += 1) {
+      var sx = starRand() * W
+      var sy = starRand() * waterY * 0.85
+      var alpha = 0.08 + starRand() * 0.4
+      g.fillStyle = 'rgba(233, 238, 241, ' + alpha.toFixed(2) + ')'
+      g.beginPath()
+      g.arc(sx, sy, starRand() < 0.15 ? 1.6 : 1, 0, Math.PI * 2)
+      g.fill()
+    }
+
+    var far = g.createLinearGradient(0, waterY - 70, 0, waterY)
+    far.addColorStop(0, 'rgba(6, 20, 26, .0)')
+    far.addColorStop(1, 'rgba(4, 14, 20, .85)')
+    g.fillStyle = far
+    g.beginPath()
+    g.moveTo(0, waterY)
+    g.lineTo(0, waterY - 26)
+    for (var x = 0; x <= W; x += 12) {
+      g.lineTo(x, waterY - 26 - Math.sin((x / W) * 5.2) * 9 - Math.sin((x / W) * 13.7) * 4)
+    }
+    g.lineTo(W, waterY)
+    g.closePath()
+    g.fill()
+
+    var water = g.createLinearGradient(0, waterY, 0, H)
+    water.addColorStop(0, '#123a45')
+    water.addColorStop(0.6, '#0c2831')
+    water.addColorStop(1, '#061319')
+    g.fillStyle = water
+    g.fillRect(0, waterY, W, H - waterY)
+
+    for (var r = 0; r < 16; r += 1) {
+      var ry = waterY + 8 + (r / 16) * (H - waterY - 8)
+      g.strokeStyle = 'rgba(180, 214, 222, ' + (0.05 + (r / 16) * 0.07).toFixed(3) + ')'
+      g.lineWidth = 1
+      g.beginPath()
+      for (var wx = 0; wx <= W; wx += 10) {
+        var wy = ry + Math.sin(wx / 46 + r) * 1.6
+        if (wx === 0) g.moveTo(wx, wy)
+        else g.lineTo(wx, wy)
+      }
+      g.stroke()
+    }
+  }
+
+  /* ══ 8. 猫（优先用项目里的兽设贴图，没有就现画一只） ═══════════ */
+  var ART_SRC = ''
+  var ART_CANDIDATES = [ART_SRC, '../assets/pet-cutout.png', 'assets/pet-cutout.png', 'pet-cutout.png'].filter(Boolean)
+  var catImage = null
+
+  function loadCatArt(index) {
+    if (index >= ART_CANDIDATES.length) return
+    var img = new Image()
+    img.onload = function () { catImage = img }
+    img.onerror = function () { loadCatArt(index + 1) }
+    img.src = ART_CANDIDATES[index]
+  }
+
+  var cat = { x: 240, tx: 240, y: 300, face: 'idle', faceUntil: 0 }
+
+  function drawVectorCat(x, y, scale, t, face) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.scale(scale, scale)
+    var ink = '#121a20'
+    var fur = '#f3f6f7'
+    ctx.lineJoin = 'round'
+
+    ctx.strokeStyle = ink
+    ctx.lineWidth = 7
+    ctx.lineCap = 'round'
+    ctx.beginPath()
+    ctx.moveTo(-24, 26)
+    ctx.quadraticCurveTo(-46, 22, -42, -6 + Math.sin(t * 2.4) * 3)
+    ctx.stroke()
+    ctx.strokeStyle = fur
+    ctx.lineWidth = 4
+    ctx.beginPath()
+    ctx.moveTo(-41, -3 + Math.sin(t * 2.4) * 3)
+    ctx.quadraticCurveTo(-43, -6 + Math.sin(t * 2.4) * 3, -42, -6 + Math.sin(t * 2.4) * 3)
+    ctx.stroke()
+
+    ctx.fillStyle = fur
+    ctx.strokeStyle = ink
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.ellipse(-1, 26, 30, 24, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = ink
+    ctx.beginPath()
+    ctx.ellipse(20, 30, 12, 16, -0.35, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = fur
+    ctx.beginPath()
+    ctx.moveTo(-30, -14)
+    ctx.lineTo(-34, -44)
+    ctx.quadraticCurveTo(-33, -50, -26, -47)
+    ctx.lineTo(-6, -30)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = ink
+    ctx.beginPath()
+    ctx.moveTo(30, -14)
+    ctx.lineTo(34, -44)
+    ctx.quadraticCurveTo(33, -50, 26, -47)
+    ctx.lineTo(6, -30)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.fillStyle = fur
+    ctx.beginPath()
+    ctx.arc(0, -10, 31, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(0, -10, 30, 0, Math.PI * 2)
+    ctx.clip()
+    ctx.fillStyle = ink
+    ctx.beginPath()
+    ctx.moveTo(2, -46)
+    ctx.quadraticCurveTo(34, -34, 30, -2)
+    ctx.quadraticCurveTo(20, -16, 2, -12)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+
+    ctx.strokeStyle = '#e8b04b'
+    ctx.lineWidth = 2.6
+    ctx.fillStyle = 'rgba(232, 240, 245, .1)'
+    var glasses = [[-12, -12], [12, -12]]
+    for (var i = 0; i < glasses.length; i += 1) {
+      ctx.beginPath()
+      ctx.arc(glasses[i][0], glasses[i][1], 11, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+    }
+    ctx.beginPath()
+    ctx.moveTo(-1, -12)
+    ctx.lineTo(1, -12)
+    ctx.stroke()
+
+    var closed = Math.sin(t * 0.9) > 0.97 || face === 'blink'
+    for (var e = 0; e < glasses.length; e += 1) {
+      var ex = glasses[e][0]
+      var ey = glasses[e][1]
+      if (face === 'hurt') {
+        ctx.strokeStyle = '#9b7cf0'
+        ctx.lineWidth = 2.4
+        ctx.beginPath()
+        ctx.moveTo(ex - 5, ey - 5)
+        ctx.lineTo(ex + 5, ey + 5)
+        ctx.moveTo(ex + 5, ey - 5)
+        ctx.lineTo(ex - 5, ey + 5)
+        ctx.stroke()
+      } else if (face === 'happy') {
+        ctx.strokeStyle = '#9b7cf0'
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.arc(ex, ey + 3, 5.4, Math.PI * 1.15, Math.PI * 1.85)
+        ctx.stroke()
+      } else if (closed) {
+        ctx.strokeStyle = '#9b7cf0'
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.moveTo(ex - 5, ey)
+        ctx.lineTo(ex + 5, ey)
+        ctx.stroke()
+      } else {
+        ctx.fillStyle = '#9b7cf0'
+        ctx.beginPath()
+        ctx.arc(ex, ey, 6.4, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = '#1b1030'
+        ctx.beginPath()
+        ctx.arc(ex, ey, 2.8, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.fillStyle = 'rgba(255, 255, 255, .9)'
+        ctx.beginPath()
+        ctx.arc(ex - 2.2, ey - 2.4, 1.9, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+
+    ctx.fillStyle = '#2a3441'
+    ctx.beginPath()
+    ctx.moveTo(-3, 0)
+    ctx.lineTo(3, 0)
+    ctx.lineTo(0, 3.4)
+    ctx.closePath()
+    ctx.fill()
+    ctx.strokeStyle = '#2a3441'
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    ctx.moveTo(0, 3.4)
+    ctx.quadraticCurveTo(-4, 7, -7, 5)
+    ctx.moveTo(0, 3.4)
+    ctx.quadraticCurveTo(4, 7, 7, 5)
+    ctx.stroke()
+
+    ctx.strokeStyle = 'rgba(18, 26, 32, .55)'
+    ctx.lineWidth = 1.3
+    for (var w = -1; w <= 1; w += 2) {
+      ctx.beginPath()
+      ctx.moveTo(w * 14, 1)
+      ctx.lineTo(w * 34, -3)
+      ctx.moveTo(w * 14, 4)
+      ctx.lineTo(w * 34, 6)
+      ctx.stroke()
+    }
+
+    ctx.strokeStyle = '#e8b04b'
+    ctx.lineWidth = 4
+    ctx.beginPath()
+    ctx.arc(0, 4, 25, Math.PI * 0.16, Math.PI * 0.84)
+    ctx.stroke()
+    ctx.fillStyle = '#e8b04b'
+    ctx.beginPath()
+    ctx.arc(0, 27, 6.4, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#a9761f'
+    ctx.lineWidth = 1.4
+    ctx.beginPath()
+    ctx.moveTo(-4, 25)
+    ctx.lineTo(4, 25)
+    ctx.stroke()
+
+    ctx.restore()
+  }
+
+  function drawCat(t) {
+    var face = cat.face
+    if (cat.faceUntil && t > cat.faceUntil) { cat.face = 'idle'; cat.faceUntil = 0; face = 'idle' }
+    var bob = Math.sin(t * 2.2) * 2.4
+    if (catImage) {
+      // 和荷叶差不多宽：既看得清猫，贴边时也不会被裁掉半个身子
+      var size = SIM.padHalf * 2 + 6
+      ctx.drawImage(catImage, cat.x - size / 2, cat.y - size * 0.62 + bob, size, size)
+    } else {
+      drawVectorCat(cat.x, cat.y + bob, 0.98, t, face)
+    }
+  }
+
+  /* ══ 9. 视图侧状态与特效 ════════════════════════════════════════
+     game 是内核 createRound() 产出的那一局；bits/floats/shake/flash 只影响画面，
+     不参与算分，所以可以随便用 Math.random 和真实帧间隔。
+     ═══════════════════════════════════════════════════════════════ */
+  var game = null
+  var mode = 'menu'
+  var visualClock = 0
+  var fx = { bits: [], floats: [], shake: 0, flash: 0 }
+
+  function level() {
+    return Math.min(save.wins, LEVELS.length - 1)
+  }
+
+  function addBits(x, y, color, count) {
+    for (var i = 0; i < count; i += 1) {
+      var angle = Math.random() * Math.PI * 2
+      var power = 40 + Math.random() * 130
+      fx.bits.push({
+        x: x,
+        y: y,
+        vx: Math.cos(angle) * power,
+        vy: Math.sin(angle) * power - 40,
+        life: 0.5 + Math.random() * 0.4,
+        max: 0.9,
+        r: 1.6 + Math.random() * 2.6,
+        color: color,
+      })
+    }
+  }
+
+  function addFloat(text, x, y, color) {
+    fx.floats.push({ text: text, x: x, y: y, life: 0.9, color: color })
+  }
+
+  function faceFor(kind, duration) {
+    cat.face = kind
+    cat.faceUntil = visualClock + duration
+  }
+
+  /** 内核算出来的事件 → 声音、粒子、表情、台词。 */
+  function runEvents(events) {
+    for (var i = 0; i < events.length; i += 1) {
+      var event = events[i]
+      if (event.type === 'catch') {
+        addBits(event.x, event.y, event.gold ? '#e8b04b' : '#2f8f7d', event.gold ? 12 : 7)
+        addFloat('+' + event.gain + (event.mult > 1 ? ' ×' + event.mult : ''), event.x, event.y - 10, event.gold ? '#f3d79a' : '#8fd8c6')
+        faceFor('happy', 0.4)
+        if (event.gold) sfx.gold()
+        else sfx.catch()
+      } else if (event.type === 'bomb') {
+        fx.shake = 1
+        fx.flash = 0.85
+        addBits(event.x, event.y, '#cf4a2f', 16)
+        addFloat('−1 条命', event.x, event.y - 10, '#e2836c')
+        faceFor('hurt', 1)
+        sfx.bomb()
+      } else if (event.type === 'milk') {
+        addBits(event.x, event.y, '#e9eef1', 10)
+        addFloat('+1 条命', event.x, event.y - 10, '#f3d79a')
+        faceFor('happy', 0.6)
+        sfx.milk()
+      } else if (event.type === 'splash') {
+        addBits(event.x, event.y, '#4b7f8c', 5)
+      } else if (event.type === 'combo-break') {
+        addFloat('连击断了', event.x, event.y, '#93a8b3')
+      } else if (event.type === 'end') {
+        finishRound(event.won, event.reason)
+      }
+    }
+  }
+
+  /* ══ 10. 回合流程 ═══════════════════════════════════════════════ */
+  function localSeed() {
+    return (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0
+  }
+
+  function roundNumber(won) {
+    return won ? Math.max(1, save.wins) : save.wins + 1
+  }
+
+  /** 真正开局：摇一个种子，按"已经赢过几局"定难度。 */
+  function beginRound(seed, lv) {
+    game = createRound(seed, lv)
+    mode = 'play'
+    acc = 0
+    recorded = []
+    lastInput = SIM.width / 2
+    fx.bits = []
+    fx.floats = []
+    fx.shake = 0
+    fx.flash = 0
+    cat.x = SIM.width / 2
+    cat.tx = SIM.width / 2
+    cat.face = 'idle'
+    cat.faceUntil = 0
+    hideOverlays()
+    renderHud()
+    el.live.textContent = '第 ' + (save.wins + 1) + ' 局开始，目标 ' + game.target + ' 分'
+  }
+
+  function startRound() {
+    beginRound(localSeed(), level())
+  }
+
+  function finishRound(won, reason) {
+    if (mode !== 'play') return
+    mode = 'over'
+    if (!FORCED) {
+      save.rounds += 1
+      if (won) {
+        save.wins += 1
+        if (game.score > save.best) save.best = game.score
+      }
+      persist()
+    }
+    if (won) sfx.win()
+    else sfx.lose()
+    renderHud()
+    showResult(won)
+  }
+
+  function claimCode() {
+    var taken = {}
+    for (var i = 0; i < save.claimed.length; i += 1) taken[save.claimed[i]] = true
+    var free = []
+    for (var j = 0; j < pool.length; j += 1) if (!taken[j]) free.push(j)
+    if (!free.length) return null
+    var index = free[Math.floor(Math.random() * free.length)]
+    if (!FORCED) {
+      save.claimed.push(index)
+      persist()
+    }
+    return { index: index, code: pool[index], total: pool.length }
+  }
+
+  /* ══ 11. 界面 ═══════════════════════════════════════════════════ */
+  function hideOverlays() {
+    el.overlayMenu.hidden = true
+    el.overlayResult.hidden = true
+    el.overlayCollection.hidden = true
+  }
+
+  function renderHud() {
+    if (!game) return
+    el.score.textContent = String(game.score)
+    el.target.textContent = String(game.target)
+    el.clock.textContent = Math.max(0, game.time).toFixed(1)
+    el.progress.style.width = Math.min(100, (game.score / game.target) * 100).toFixed(1) + '%'
+    if (el.lives.dataset.count !== String(game.lives)) {
+      el.lives.innerHTML = ''
+      for (var j = 0; j < Math.max(game.rules.lives, game.lives); j += 1) el.lives.innerHTML += bell(j < game.lives)
+      el.lives.dataset.count = String(game.lives)
+      el.lives.setAttribute('aria-label', '剩余生命 ' + game.lives)
+    }
+    var mult = multiplierOf(game)
+    if (mode === 'play' && game.combo >= 2) {
+      el.combo.hidden = false
+      el.comboN.textContent = String(game.combo)
+      el.comboX.textContent = '×' + mult
+    } else {
+      el.combo.hidden = true
+    }
+    refreshPill()
+  }
+
+  function refreshPill() {
+    el.ownedPill.textContent = save.claimed.length + '/' + pool.length
+  }
+
+  function renderMenu() {
+    var lv = level()
+    var rules = LEVELS[lv]
+    var left = pool.length - save.claimed.length
+    el.menuEyebrow.textContent = pool.length ? '第 ' + (save.wins + 1) + ' 局 · 还剩 ' + left + ' 张码' : '还没设置兑换码'
+    el.menuMeta.textContent = '目标 ' + rules.target + ' 分 · ' + rules.lives + ' 条命 · ' + rules.seconds + ' 秒'
+    if (!game) el.target.textContent = String(rules.target)
+    refreshPill()
+  }
+
+  function renderCollection() {
+    var owned = save.claimed.slice().sort(function (a, b) { return a - b })
+    el.collectionLede.textContent = owned.length
+      ? '已经赢到 ' + owned.length + ' 张，共 ' + pool.length + ' 张。'
+      : '还没有赢到兑换码，回去捞鱼吧。'
+    var html = ''
+    var ownedSet = {}
+    for (var i = 0; i < owned.length; i += 1) ownedSet[owned[i]] = true
+    for (var k = 0; k < pool.length; k += 1) {
+      html += '<li><span class="slot-no">' + (k + 1) + '</span>' + (ownedSet[k]
+        ? '<code class="slot-code">' + pool[k] + '</code>'
+        : '<span class="slot-locked">未获得 · 赢了才有</span>') + '</li>'
+    }
+    if (!pool.length) html = '<li><span class="slot-locked">还没有配置兑换码</span></li>'
+    el.taglist.innerHTML = html
+  }
+
+  function finishCard(html) {
+    el.resultCard.innerHTML = html
+    el.overlayResult.hidden = false
+    var focusTarget = el.resultCard.querySelector('.btn-primary')
+    if (focusTarget) focusTarget.focus()
+    wireResult()
+  }
+
+  function showResult(won) {
+    var html = ''
+    if (!pool.length && won) {
+      html = '<p class="eyebrow">胜利</p><h2>赢了，但没码</h2>' +
+        '<p class="lede">这一局打得漂亮，可作者还没把兑换码填进来。<br>跑一句 <b>node scripts/game-codes.mjs set 码1 码2 码3 码4 码5</b> 就有了。</p>' +
+        '<div class="actions"><button type="button" class="btn btn-primary" id="btn-again">再玩一局</button></div>'
+    } else if (won) {
+      var pick = claimCode()
+      refreshPill()
+      if (!pick) {
+        html = '<p class="eyebrow">胜利</p><h2>' + pool.length + ' 张全被你捞走了</h2>' +
+          '<p class="lede">兑换码已经发完，都在你的收藏里。</p>' +
+          '<div class="actions"><button type="button" class="btn btn-primary" id="btn-open-collection">看我的兑换码</button>' +
+          '<button type="button" class="btn" id="btn-again">再玩一局</button></div>'
+      } else {
+        var left = pool.length - save.claimed.length
+        html = '<p class="eyebrow">第 ' + roundNumber(true) + ' 局 · 胜利</p>' +
+          '<h2>捞上来一张</h2>' +
+          '<div class="tag"><span class="tag-index">第 ' + (pick.index + 1) + ' 张 · 共 ' + pick.total + ' 张</span>' +
+          '<code class="tag-code" id="tag-code">' + pick.code + '</code></div>' +
+          '<p class="lede">' + (left > 0 ? '还剩 ' + left + ' 张，再赢一局还能抽。' : '这是最后一张，5 张全部到手。') + '</p>' +
+          '<div class="actions"><button type="button" class="btn btn-primary" id="btn-copy">复制兑换码</button>' +
+          '<button type="button" class="btn" id="btn-again">再玩一局</button></div>' +
+          '<p class="hint">这一版的码就藏在这个页面里：挡得住顺手看源码的人，挡不住铁了心逆向的人。</p>' +
+          '<p class="hint"><button type="button" class="btn btn-ghost" id="btn-open-collection">查看我的兑换码</button></p>'
+      }
+      el.live.textContent = '胜利，得分 ' + game.score
+    } else {
+      var gap = Math.max(0, game.target - game.score)
+      var how = game.reason === 'bomb' ? '被炸弹掀翻了荷叶。' : '时间到，还差 ' + gap + ' 分。'
+      html = '<p class="eyebrow">第 ' + roundNumber(false) + ' 局 · 失败</p><h2>脱钩了</h2>' +
+        '<p class="lede">本局 ' + game.score + ' 分，目标 ' + game.target + ' 分。<br>' + how + '</p>' +
+        '<div class="actions"><button type="button" class="btn btn-primary" id="btn-again">再来一局</button>' +
+        '<button type="button" class="btn" id="btn-open-collection">我的兑换码</button></div>'
+      el.live.textContent = '失败，得分 ' + game.score
+    }
+    finishCard(html)
+  }
+
+  function wireResult() {
+    var again = document.getElementById('btn-again')
+    if (again) again.addEventListener('click', function () { startRound() })
+    var copy = document.getElementById('btn-copy')
+    if (copy) copy.addEventListener('click', function () {
+      var codeEl = document.getElementById('tag-code')
+      var text = codeEl ? codeEl.textContent : ''
+      copyText(text).then(function (ok) {
+        if (ok) {
+          copy.textContent = '已复制'
+          toast('兑换码复制好了：' + text)
+        } else {
+          toast('复制失败，选中码手动复制吧')
+        }
+      })
+    })
+    var open = document.getElementById('btn-open-collection')
+    if (open) open.addEventListener('click', openCollection)
+  }
+
+  function copyText(text) {
+    return new Promise(function (resolve) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { resolve(true) }, function () { resolve(legacyCopy(text)) })
+        return
+      }
+      resolve(legacyCopy(text))
+    })
+  }
+
+  function legacyCopy(text) {
+    try {
+      var area = document.createElement('textarea')
+      area.value = text
+      area.setAttribute('readonly', '')
+      area.style.position = 'fixed'
+      area.style.top = '-1000px'
+      document.body.appendChild(area)
+      area.select()
+      var ok = document.execCommand('copy')
+      document.body.removeChild(area)
+      return ok
+    } catch (err) {
+      return false
+    }
+  }
+
+  function openCollection() {
+    renderCollection()
+    hideOverlays()
+    el.overlayCollection.hidden = false
+    document.getElementById('btn-collection-close').focus()
+  }
+
+  /* ══ 12. 输入 ═══════════════════════════════════════════════════ */
+  var keys = {}
+
+  function pointToX(event) {
+    var rect = canvas.getBoundingClientRect()
+    // 屏幕坐标 → 内核坐标（480 宽）；判定和画面因此永远对得上
+    return clampX((event.clientX - rect.left) * (SIM.width / rect.width))
+  }
+
+  var dragging = false
+  canvas.addEventListener('pointerdown', function (event) {
+    dragging = true
+    canvas.setPointerCapture(event.pointerId)
+    cat.tx = pointToX(event)
+    if (mode === 'menu') startRound()
+  })
+  canvas.addEventListener('pointermove', function (event) {
+    if (dragging) cat.tx = pointToX(event)
+  })
+  canvas.addEventListener('pointerup', function (event) {
+    dragging = false
+    try { canvas.releasePointerCapture(event.pointerId) } catch (err) { /* 已经释放 */ }
+  })
+  canvas.addEventListener('pointercancel', function () { dragging = false })
+
+  window.addEventListener('keydown', function (event) {
+    var key = event.key
+    if (key === 'ArrowLeft' || key === 'a' || key === 'A') keys.left = true
+    else if (key === 'ArrowRight' || key === 'd' || key === 'D') keys.right = true
+    else if (key === ' ' || key === 'Enter') {
+      if (mode === 'over' || mode === 'menu') {
+        if (!el.overlayCollection.hidden) return
+        event.preventDefault()
+        startRound()
+      }
+    } else if (key === 'Escape') {
+      if (!el.overlayCollection.hidden) {
+        el.overlayCollection.hidden = true
+        if (mode === 'menu') el.overlayMenu.hidden = false
+        else if (mode === 'over') el.overlayResult.hidden = false
+      }
+    }
+    if (keys.left || keys.right) event.preventDefault()
+  })
+  window.addEventListener('keyup', function (event) {
+    var key = event.key
+    if (key === 'ArrowLeft' || key === 'a' || key === 'A') keys.left = false
+    if (key === 'ArrowRight' || key === 'd' || key === 'D') keys.right = false
+  })
+
+  el.sound.addEventListener('click', function () {
+    audio.on = !audio.on
+    save.muted = !audio.on
+    persist()
+    el.sound.textContent = audio.on ? '音效开' : '音效关'
+    el.sound.setAttribute('aria-pressed', audio.on ? 'true' : 'false')
+    if (audio.on) sfx.catch()
+  })
+  el.collection.addEventListener('click', openCollection)
+  document.getElementById('btn-start').addEventListener('click', function () { startRound() })
+  document.getElementById('btn-collection-close').addEventListener('click', function () {
+    el.overlayCollection.hidden = true
+    if (mode === 'menu') { renderMenu(); el.overlayMenu.hidden = false }
+    else if (mode === 'over') el.overlayResult.hidden = false
+  })
+  document.getElementById('btn-reset').addEventListener('click', function () {
+    if (!window.confirm('清空已经赢到的兑换码和局数？这一下不能撤销。')) return
+    save.claimed = []
+    save.rounds = 0
+    save.wins = 0
+    save.best = 0
+    persist()
+    renderCollection()
+    renderHud()
+    toast('进度已清空')
+  })
+
+  /* ══ 13. 每帧更新 ═══════════════════════════════════════════════ */
+  var acc = 0
+  var recorded = []
+  var lastInput = SIM.width / 2
+
+  /** 调试用机器人（?bots=1）：接最近的鱼，顺手躲炸弹。 */
+  function botThink() {
+    var bestItem = null
+    var bestDepth = -Infinity
+    for (var i = 0; i < game.items.length; i += 1) {
+      var item = game.items[i]
+      if (item.type === 'bomb') continue
+      var depth = item.y + (item.type === 'gold' ? 60 : 0)
+      if (depth > bestDepth) { bestDepth = depth; bestItem = item }
+    }
+    var danger = null
+    for (var d = 0; d < game.items.length; d += 1) {
+      var bomb = game.items[d]
+      if (bomb.type !== 'bomb') continue
+      if (bomb.y > SIM.padY - 150 && Math.abs(bomb.x - cat.tx) < 70) danger = bomb
+    }
+    if (danger) cat.tx = danger.x > SIM.width / 2 ? danger.x - 110 : danger.x + 110
+    else if (bestItem && bestItem.y > SIM.height * 0.35) cat.tx = bestItem.x
+  }
+
+  function update(dt) {
+    visualClock += dt
+    if (fx.shake > 0) fx.shake = Math.max(0, fx.shake - dt * 2.6)
+    if (fx.flash > 0) fx.flash = Math.max(0, fx.flash - dt * 1.8)
+
+    if (keys.left) cat.tx -= SIM.playerSpeed * dt
+    if (keys.right) cat.tx += SIM.playerSpeed * dt
+    if (BOT && mode === 'play' && game) botThink()
+    cat.tx = clampX(cat.tx)
+    cat.x += (cat.tx - cat.x) * Math.min(1, dt * 12)
+
+    for (var i = fx.bits.length - 1; i >= 0; i -= 1) {
+      var bit = fx.bits[i]
+      bit.life -= dt
+      if (bit.life <= 0) { fx.bits.splice(i, 1); continue }
+      bit.vy += 320 * dt
+      bit.x += bit.vx * dt
+      bit.y += bit.vy * dt
+    }
+    for (var f = fx.floats.length - 1; f >= 0; f -= 1) {
+      var float = fx.floats[f]
+      float.life -= dt
+      float.y -= 34 * dt
+      if (float.life <= 0) fx.floats.splice(f, 1)
+    }
+
+    if (mode !== 'play' || !game) return
+
+    // 固定步长推进内核：只有固定步长，服务端才能一格不差地重放这一局
+    acc += dt
+    var guard = 0
+    while (acc >= SIM.step && guard < 10) {
+      acc -= SIM.step
+      guard += 1
+      lastInput = Math.round(clampX(cat.x) * 10) / 10
+      recorded.push(lastInput)
+      runEvents(stepRound(game, lastInput, SIM.step))
+      if (mode !== 'play') break
+    }
+    renderHud()
+  }
+
+  /* ══ 14. 绘制 ══════════════════════════════════════════════════ */
+  function drawFish(x, y, r, gold, t) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(Math.sin(t * 3.4 + x * 0.02) * 0.22)
+    ctx.lineJoin = 'round'
+    var body = gold ? '#e8b04b' : '#2f8f7d'
+    var belly = gold ? '#f7dc9c' : '#63c0ab'
+    ctx.fillStyle = body
+    ctx.strokeStyle = 'rgba(6, 20, 24, .85)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(-r * 1.05, 0)
+    ctx.quadraticCurveTo(0, -r * 0.72, r * 0.95, 0)
+    ctx.quadraticCurveTo(0, r * 0.72, -r * 1.05, 0)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = belly
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.75, r * 0.12)
+    ctx.quadraticCurveTo(0, r * 0.62, r * 0.8, r * 0.12)
+    ctx.quadraticCurveTo(0, r * 0.34, -r * 0.75, r * 0.12)
+    ctx.fill()
+    ctx.fillStyle = body
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.95, 0)
+    ctx.lineTo(-r * 1.6, -r * 0.62)
+    ctx.lineTo(-r * 1.6, r * 0.62)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = '#08151a'
+    ctx.beginPath()
+    ctx.arc(r * 0.52, -r * 0.12, r * 0.14, 0, Math.PI * 2)
+    ctx.fill()
+    if (gold) {
+      ctx.strokeStyle = 'rgba(255, 244, 214, .9)'
+      ctx.lineWidth = 1.6
+      ctx.beginPath()
+      ctx.arc(0, 0, r * 1.32, -0.5, 0.7)
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+
+  function drawBomb(x, y, r, t) {
+    ctx.save()
+    ctx.translate(x, y)
+    var pulse = 0.5 + Math.sin(t * 6) * 0.5
+    ctx.strokeStyle = 'rgba(207, 74, 47, ' + (0.18 + pulse * 0.24).toFixed(2) + ')'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(0, 0, r * 1.34, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.fillStyle = '#141b22'
+    ctx.beginPath()
+    ctx.arc(0, 0, r, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(233, 238, 241, .22)'
+    ctx.beginPath()
+    ctx.arc(-r * 0.32, -r * 0.34, r * 0.26, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#5c6b76'
+    ctx.lineWidth = 2.4
+    ctx.beginPath()
+    ctx.moveTo(r * 0.2, -r * 0.92)
+    ctx.quadraticCurveTo(r * 0.9, -r * 1.4, r * 0.66, -r * 1.86)
+    ctx.stroke()
+    ctx.fillStyle = '#ffb347'
+    ctx.beginPath()
+    ctx.arc(r * 0.64, -r * 1.94, 2.4 + pulse * 1.8, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+  }
+
+  function drawMilk(x, y, r, t) {
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(Math.sin(t * 2 + x * 0.03) * 0.14)
+    ctx.fillStyle = '#eef2f4'
+    ctx.strokeStyle = 'rgba(6, 20, 24, .8)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.62, -r * 0.34)
+    ctx.lineTo(r * 0.62, -r * 0.34)
+    ctx.lineTo(r * 0.78, r * 0.95)
+    ctx.quadraticCurveTo(0, r * 1.16, -r * 0.78, r * 0.95)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
+    ctx.fillStyle = 'rgba(155, 124, 240, .28)'
+    ctx.beginPath()
+    ctx.moveTo(-r * 0.6, r * 0.1)
+    ctx.lineTo(r * 0.6, r * 0.1)
+    ctx.lineTo(r * 0.7, r * 0.82)
+    ctx.quadraticCurveTo(0, r * 0.98, -r * 0.7, r * 0.82)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = '#e8b04b'
+    ctx.beginPath()
+    ctx.roundRect(-r * 0.42, -r * 0.76, r * 0.84, r * 0.44, 2)
+    ctx.fill()
+    ctx.stroke()
+    ctx.restore()
+  }
+
+  function drawLilyPad(t) {
+    ctx.save()
+    ctx.translate(cat.x, padY)
+    for (var i = 0; i < 2; i += 1) {
+      var phase = (t * 0.42 + i * 0.5) % 1
+      ctx.strokeStyle = 'rgba(180, 214, 222, ' + (0.24 * (1 - phase)).toFixed(3) + ')'
+      ctx.lineWidth = 1.4
+      ctx.beginPath()
+      ctx.ellipse(0, 4, 66 + phase * 46, 18 + phase * 13, 0, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+    ctx.fillStyle = '#17423c'
+    ctx.beginPath()
+    ctx.ellipse(0, 0, 68, 18, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#1f5b50'
+    ctx.beginPath()
+    ctx.ellipse(0, -3, 64, 14, 0, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(232, 176, 75, .16)'
+    ctx.beginPath()
+    ctx.ellipse(-6, -5, 44, 8, -0.06, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = '#0c2831'
+    ctx.beginPath()
+    ctx.moveTo(52, -4)
+    ctx.lineTo(70, 0)
+    ctx.lineTo(52, 8)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
+
+  function drawReeds(t) {
+    ctx.save()
+    ctx.fillStyle = 'rgba(6, 18, 24, .94)'
+    ctx.strokeStyle = 'rgba(6, 18, 24, .94)'
+    ctx.lineCap = 'round'
+    var clusters = [[3, 1], [W - 3, -1]]
+    for (var c = 0; c < clusters.length; c += 1) {
+      var baseX = clusters[c][0]
+      var dir = clusters[c][1]
+      for (var i = 0; i < 3; i += 1) {
+        var x0 = baseX + dir * (i * 14)
+        var top = waterY - (116 + i * 46 + (c === 0 ? 22 : 0))
+        var sway = Math.sin(t * 0.85 + i * 1.2 + c * 2) * (5 + i * 2)
+        var tipX = x0 + dir * 8 + sway
+        ctx.lineWidth = 3.4 - i * 0.6
+        ctx.beginPath()
+        ctx.moveTo(x0, waterY + 18)
+        ctx.quadraticCurveTo(x0 + dir * 5, (waterY + top) / 2, tipX, top)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.ellipse(tipX, top - 8, 3.2, 11, dir * 0.06, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    }
+    ctx.restore()
+  }
+
+  function drawMoonPath(t) {
+    var moonX = W * 0.73
+    var moonR = Math.min(W, H) * 0.1
+    ctx.save()
+    ctx.globalCompositeOperation = 'lighter'
+    for (var i = 0; i < 7; i += 1) {
+      var y = waterY + 12 + i * ((H - waterY) / 8)
+      var wobble = Math.sin(t * 1.6 + i * 0.8) * (4 + i * 1.4)
+      var alpha = 0.1 * (1 - i / 8)
+      ctx.fillStyle = 'rgba(226, 238, 243, ' + alpha.toFixed(3) + ')'
+      ctx.beginPath()
+      ctx.ellipse(moonX + wobble, y, moonR * (1.1 - i * 0.06), 3.4 + i * 0.4, 0, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  var floatFont = ''
+
+  function draw() {
+    ctx.setTransform(view.scale, 0, 0, view.scale, 0, 0)
+    ctx.save()
+    if (fx.shake > 0) {
+      var amount = fx.shake * 7
+      ctx.translate((Math.random() - 0.5) * amount, (Math.random() - 0.5) * amount)
+    }
+    ctx.clearRect(-20, -20, W + 40, H + 40)
+    ctx.drawImage(backdrop, 0, 0, W, H)
+    drawMoonPath(visualClock)
+    drawReeds(visualClock)
+    drawLilyPad(visualClock)
+    drawCat(visualClock)
+
+    var items = game ? game.items : []
+    for (var i = 0; i < items.length; i += 1) {
+      var item = items[i]
+      if (item.type === 'bomb') drawBomb(item.x, item.y, item.r, visualClock)
+      else if (item.type === 'milk') drawMilk(item.x, item.y, item.r, visualClock)
+      else drawFish(item.x, item.y, item.r, item.type === 'gold', visualClock)
+    }
+
+    for (var b = 0; b < fx.bits.length; b += 1) {
+      var bit = fx.bits[b]
+      ctx.globalAlpha = Math.max(0, Math.min(1, bit.life / bit.max))
+      ctx.fillStyle = bit.color
+      ctx.beginPath()
+      ctx.arc(bit.x, bit.y, bit.r, 0, Math.PI * 2)
+      ctx.fill()
+    }
+    ctx.globalAlpha = 1
+
+    if (!floatFont) floatFont = '600 15px ' + getComputedStyle(document.body).fontFamily
+    ctx.textAlign = 'center'
+    ctx.font = floatFont
+    for (var f = 0; f < fx.floats.length; f += 1) {
+      var float = fx.floats[f]
+      ctx.globalAlpha = Math.max(0, Math.min(1, float.life))
+      ctx.fillStyle = float.color
+      ctx.fillText(float.text, float.x, float.y)
+    }
+    ctx.globalAlpha = 1
+
+    if (fx.flash > 0) {
+      ctx.fillStyle = 'rgba(207, 74, 47, ' + (fx.flash * 0.28).toFixed(3) + ')'
+      ctx.fillRect(0, 0, W, H)
+    }
+    ctx.restore()
+  }
+
+  /* ══ 15. 主循环与启动 ══════════════════════════════════════════ */
+  var last = 0
+  function frame(timestamp) {
+    var seconds = timestamp / 1000
+    var dt = last ? Math.min(seconds - last, 0.05) : 0.016
+    last = seconds
+    update(dt)
+    draw()
+    window.requestAnimationFrame(frame)
+  }
+
+  function boot() {
+    sizeCanvas()
+    renderHud()
+    renderMenu()
+    refreshPill()
+    el.sound.textContent = audio.on ? '音效开' : '音效关'
+    el.sound.setAttribute('aria-pressed', audio.on ? 'true' : 'false')
+    loadCatArt(0)
+
+    if (FORCED === 'play' || FORCED === 'win' || FORCED === 'lose') {
+      beginRound(localSeed(), level(), null)
+      if (FORCED === 'win') {
+        game.score = game.target
+        finishRound(true, 'target')
+      } else if (FORCED === 'lose') {
+        game.score = Math.floor(game.target * 0.72)
+        finishRound(false, 'time')
+      }
+    } else if (FORCED === 'codes') {
+      openCollection()
+    }
+
+    // 无头截图用：把这一局直接快进 N 秒算完，再画一帧
+    if (ADVANCE > 0 && mode === 'play' && game) {
+      var steps = Math.round(ADVANCE * 60)
+      for (var s = 0; s < steps && mode === 'play'; s += 1) {
+        if (BOT) botThink()
+        cat.x = cat.tx
+        lastInput = Math.round(clampX(cat.x) * 10) / 10
+        recorded.push(lastInput)
+        runEvents(stepRound(game, lastInput, SIM.step))
+      }
+      visualClock += ADVANCE
+      draw()
+    }
+    if (REPORT) {
+      document.title = 'RESULT mode=' + mode + ' score=' + (game ? game.score : 0) + ' target=' + (game ? game.target : 0) +
+        ' lives=' + (game ? game.lives : 0) + ' level=' + (game ? game.level : 0) + ' combo=' + (game ? game.bestCombo : 0) +
+        ' used=' + (game ? (game.rules.seconds - game.time).toFixed(1) : '0') +
+        ' won=' + (game && game.score >= game.target ? 1 : 0) +
+        ' vw=' + window.innerWidth + ' docW=' + document.documentElement.scrollWidth +
+        ' stageW=' + Math.round(stage.getBoundingClientRect().width)
+    }
+
+    window.requestAnimationFrame(frame)
+  }
+
+  window.addEventListener('resize', function () { sizeCanvas() })
+  boot()
+})()
+</script>
+</body>
+</html>

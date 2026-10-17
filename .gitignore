@@ -1,0 +1,5 @@
+.DS_Store
+node_modules/
+# 真码别提交：填码请用 scripts/game-codes.mjs，提交前确认 pool 是空的
+codes.txt
+*.local.json

@@ -1,0 +1,12 @@
+{
+  "name": "moonfish",
+  "version": "1.0.0",
+  "description": "月下捞鱼：赢了才给兑换码的单文件小游戏",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/game-build.mjs",
+    "codes": "node scripts/game-codes.mjs",
+    "test": "node --test \"tests/*.test.mjs\""
+  },
+  "license": "MIT"
+}
